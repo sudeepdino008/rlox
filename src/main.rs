@@ -1,4 +1,18 @@
-use std::{env, fs, io::{self, Write}};
+mod errors;
+mod scanner;
+mod tokens;
+
+use std::{
+    cell::RefCell,
+    env, fs,
+    io::{self, BufReader, Write},
+    process::exit,
+};
+
+use errors::error_handling::ErrorState;
+use scanner::Scanner;
+
+thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState { error_occured: false }));
 
 fn main() {
     println!("Hello, world!");
@@ -17,6 +31,7 @@ fn main() {
 
 fn run_prompt() {
     let mut line: String = "".to_string();
+    let mut scanner = Scanner::build_scanner(BufReader::new(io::stdin()));
     loop {
         print!("rlox> ");
         io::stdout().flush().unwrap();
@@ -24,18 +39,34 @@ fn run_prompt() {
             Err(why) => {
                 eprintln!("{:?}", why);
                 continue;
-            },
-            Ok(_) => (),
+            }
+            Ok(_) => {}
         }
-        run(&line);
+        run_line(&line);
+        set_error(false);
     }
 }
 
 fn run_file(filename: &str) {
     let contents = fs::read_to_string(filename).expect("can't read file contents");
-    run(&contents);
+    run_line(&contents);
+    exit_if_error();
 }
 
-fn run(contents: &str) {
+fn run_line(contents: &str) {
     println!("well came this far!");
+}
+
+fn exit_if_error() {
+    ERROR_STATE.with(|val| {
+        if val.borrow().error_occured {
+            exit(65);
+        }
+    });
+}
+
+fn set_error(is_error: bool) {
+    ERROR_STATE.with(|val| {
+        val.borrow_mut().error_occured = is_error;
+    })
 }
