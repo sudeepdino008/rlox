@@ -4,7 +4,8 @@ mod tokens;
 
 use std::{
     cell::RefCell,
-    env, fs,
+    env,
+    fs::{self, File},
     io::{self, BufReader, Write},
     process::exit,
 };
@@ -31,7 +32,6 @@ fn main() {
 
 fn run_prompt() {
     let mut line: String = "".to_string();
-    let mut scanner = Scanner::build_scanner(BufReader::new(io::stdin()));
     loop {
         print!("rlox> ");
         io::stdout().flush().unwrap();
@@ -48,12 +48,18 @@ fn run_prompt() {
 }
 
 fn run_file(filename: &str) {
-    let contents = fs::read_to_string(filename).expect("can't read file contents");
-    run_line(&contents);
+    let scanner = Scanner::build_scanner(BufReader::new(File::open(filename).unwrap()));
+    for lexeme in scanner {
+        println!("{:?}", lexeme);
+    }
     exit_if_error();
 }
 
 fn run_line(contents: &str) {
+    let scanner = Scanner::build_scanner(BufReader::new(contents.as_bytes()));
+    for lexeme in scanner {
+        println!("{:?}", lexeme);
+    }
     println!("well came this far!");
 }
 
