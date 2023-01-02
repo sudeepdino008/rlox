@@ -1,8 +1,7 @@
+use crate::errors;
 use crate::tokens::{Token, TokenType};
 
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::{BufReader, Seek};
+use std::io::{prelude::*, ErrorKind};
 use std::iter::Iterator;
 
 pub(crate) struct Scanner<R>
@@ -17,23 +16,28 @@ where
 }
 
 impl<R: Read> Iterator for Scanner<R> {
-    type Item = Token;
+    type Item = Result<Token, String>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.end_reached {
             return None;
         }
-        let result = self.scanToken();
-        if result.is_none() {
-            self.end_reached = true;
-            return Some(Token {
-                ttype: TokenType::Eof,
-                lexeme: String::from(""),
-                line_num: self.line,
-            });
+        let result = self.scan_token();
+        return if result.is_ok() {
+            let maybe_token = result.unwrap();
+            if maybe_token.is_none() {
+                self.end_reached = true;
+                Some(Ok(Token {
+                    ttype: TokenType::Eof,
+                    lexeme: String::from(""),
+                    line_num: self.line,
+                }))
+            } else {
+                Some(Ok(maybe_token.unwrap()))
+            }
         } else {
-            return result;
-        }
+            Some(Err(result.unwrap_err()))
+        };
     }
 }
 
@@ -48,32 +52,90 @@ impl<R: Read> Scanner<R> {
         };
     }
 
-    // fn is_at_end(&mut self) -> bool {
-    //     let result = &self.reader.seek(std::io::SeekFrom::Current(1));
-    //     if result.is_err() {
-    //         println!("isAtEnd err: {}", result.as_ref().err().unwrap());
-    //     }
-
-    //     return result.is_err();
-    // }
-
-    fn scanToken(&mut self) -> Option<Token> {
-        let c = self.advance(); // not caring a lot about unicodes here!!
-        if c.is_none() {
-            return None;
+    fn scan_token(&mut self) -> Result<Option<Token>, String> {
+        let next_char = self.advance(); // not caring a lot about unicodes here!!
+        if next_char.is_none() {
+            return Ok(None);
         }
-        return Some(Token {
-            ttype: TokenType::And,
-            lexeme: String::from(c.unwrap()),
-            line_num: self.line,
-        });
+
+        let next_char = String::from(next_char.unwrap());
+
+        let token = match next_char.as_str() {
+            ";" => Token {
+                ttype: TokenType::Semicolon,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "," => Token {
+                ttype: TokenType::Comma,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "." => Token {
+                ttype: TokenType::Dot,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "(" => Token {
+                ttype: TokenType::LeftParen,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            ")" => Token {
+                ttype: TokenType::RightParen,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "{" => Token {
+                ttype: TokenType::LeftBrace,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "}" => Token {
+                ttype: TokenType::RightBrace,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "-" => Token {
+                ttype: TokenType::Minus,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "+" => Token {
+                ttype: TokenType::Plus,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "*" => Token {
+                ttype: TokenType::Star,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+
+            // note that this means that stdin based contents will exhaust itself, hitting eof and
+            // the iterator will exhaust itself
+            "\n" => return self.scan_token(),
+
+            _ => {
+                // unhandled
+                let msg = format!("error scanning token: {}", next_char);
+                println!("{}", msg);
+                return Err(msg);
+            }
+        };
+
+        return Ok(Some(token));
     }
 
     fn advance(&mut self) -> Option<char> {
         let mut buf: [u8; 1] = [0; 1];
         let result = self.contents.read_exact(&mut buf);
         if result.is_err() {
-            println!("the error is: {}", result.err().unwrap());
+            let err = result.unwrap_err();
+            if err.kind() != ErrorKind::UnexpectedEof {
+                println!("the error is: {}", err);
+            }
+
             return None;
         }
         let c = buf[0] as char;

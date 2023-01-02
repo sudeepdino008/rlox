@@ -1,8 +1,9 @@
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum TokenType {
     // single character tokens
     LeftParen,
-    RightParent,
+    RightParen,
     LeftBrace,
     RightBrace,
     Comma,

@@ -6,7 +6,7 @@ use std::{
     cell::RefCell,
     env,
     fs::{self, File},
-    io::{self, BufReader, Write},
+    io::{self, BufRead, BufReader, Write},
     process::exit,
 };
 
@@ -31,17 +31,19 @@ fn main() {
 }
 
 fn run_prompt() {
-    let mut line: String = "".to_string();
     loop {
+        // simply moving this line outside the loop will append to this "line" variable and not just store the current input
+        let mut line = String::new();
         print!("rlox> ");
         io::stdout().flush().unwrap();
-        match io::stdin().read_line(&mut line) {
+        match io::stdin().lock().read_line(&mut line) {
             Err(why) => {
                 eprintln!("{:?}", why);
                 continue;
             }
             Ok(_) => {}
         }
+        println!("the line is: {}", line);
         run_line(&line);
         set_error(false);
     }
