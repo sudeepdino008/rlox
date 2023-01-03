@@ -6,7 +6,7 @@ use std::{
     cell::RefCell,
     env,
     fs::{self, File},
-    io::{self, BufRead, BufReader, Write},
+    io::{self, BufRead, BufReader, Cursor, Write},
     process::exit,
 };
 
@@ -58,7 +58,8 @@ fn run_file(filename: &str) {
 }
 
 fn run_line(contents: &str) {
-    let scanner = Scanner::build_scanner(BufReader::new(contents.as_bytes()));
+    let cursor = Cursor::new(contents.as_bytes());
+    let scanner = Scanner::build_scanner(BufReader::new(cursor));
     for lexeme in scanner {
         println!("{:?}", lexeme);
     }
