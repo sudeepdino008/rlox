@@ -1,5 +1,5 @@
 use crate::errors;
-use crate::tokens::{Token, TokenType};
+use crate::tokens::{get_reserved_keyword, Token, TokenType};
 
 use std::io::{prelude::*, BufWriter, ErrorKind, SeekFrom};
 use std::iter::Iterator;
@@ -142,6 +142,7 @@ impl<R: Read + Seek> Scanner<R> {
             "<" => {
                 let is_less_equal = self.match_curr("=");
                 let (token_type, lexeme) = if is_less_equal {
+                    _ = self.advance();
                     (TokenType::LessEqual, "<=")
                 } else {
                     (TokenType::Less, "<")
@@ -195,7 +196,7 @@ impl<R: Read + Seek> Scanner<R> {
             "\"" => {
                 let token = self.extract_string_token();
                 if token.is_err() {
-                    return Err(token.err().unwrap().to_string());
+                    return Err(token.err().unwrap());
                 } else {
                     let contents = token.unwrap();
                     Token {
@@ -203,6 +204,28 @@ impl<R: Read + Seek> Scanner<R> {
                         lexeme: String::new(),
                         line_num: self.line,
                     }
+                }
+            }
+
+            d if d.chars().collect::<Vec<char>>()[0].is_numeric() => {
+                let token = self.extract_number(d);
+                if token.is_err() {
+                    return Err(token.err().unwrap());
+                } else {
+                    Token {
+                        ttype: TokenType::Number(token.unwrap()),
+                        lexeme: String::new(),
+                        line_num: self.line,
+                    }
+                }
+            }
+
+            a if a.chars().collect::<Vec<char>>()[0].is_alphanumeric() => {
+                let token = self.extract_identifier(a);
+                if token.is_err() {
+                    return Err(token.err().unwrap());
+                } else {
+                    token.unwrap()
                 }
             }
 
@@ -240,6 +263,11 @@ impl<R: Read + Seek> Scanner<R> {
     }
 
     fn match_curr(&mut self, value: &str) -> bool {
+        let next_c = self.peek();
+        return next_c.is_some() && next_c.unwrap().to_string() == value;
+    }
+
+    fn peek(&mut self) -> Option<char> {
         let curr_pos = self.contents.seek(SeekFrom::Current(0));
         if curr_pos.is_err() {
             panic!("seeking failed {:?}", curr_pos.err());
@@ -252,24 +280,23 @@ impl<R: Read + Seek> Scanner<R> {
                 Ok(_) => {}
                 Err(err) => panic!("seeking failed {:?}", err),
             };
-            return false;
+            return None;
         }
         match self.contents.seek(SeekFrom::Start(curr_pos)) {
             Ok(_) => {}
             Err(err) => panic!("seeking failed {:?}", err),
         };
 
-        let c = buf[0] as char;
-        return c.to_string() == value;
+        return Some(buf[0] as char);
     }
 
-    fn extract_string_token(&mut self) -> Result<String, &str> {
+    fn extract_string_token(&mut self) -> Result<String, String> {
         let mut string_content = String::new();
         loop {
             let c = self.advance();
 
             if c.is_none() {
-                return Err("unterminated string");
+                return Err("unterminated string".to_string());
             }
             let c = c.unwrap();
             if c == '"' {
@@ -277,5 +304,64 @@ impl<R: Read + Seek> Scanner<R> {
             }
             string_content.push_str(c.to_string().as_str());
         }
+    }
+
+    fn extract_number(&mut self, start: &str) -> Result<f64, String> {
+        let mut content = String::new();
+        content.push_str(start);
+
+        loop {
+            let next_c = self.peek();
+            if next_c.is_none() {
+                break;
+            }
+
+            let next_c = next_c.unwrap();
+            if !next_c.is_numeric() && next_c != '.' {
+                break;
+            }
+
+            _ = self.advance();
+            content.push_str(next_c.to_string().as_str());
+        }
+
+        let num = content.parse::<f64>();
+        if num.is_err() {
+            return Err(num.err().unwrap().to_string());
+        } else {
+            return Ok(num.unwrap());
+        }
+    }
+
+    fn extract_identifier(&mut self, start: &str) -> Result<Token, String> {
+        let mut content = String::new();
+        content.push_str(start);
+
+        loop {
+            let next_c = self.peek();
+            if next_c.is_none() {
+                break;
+            }
+
+            let next_c = next_c.unwrap();
+            if !next_c.is_alphanumeric() {
+                break;
+            }
+
+            _ = self.advance();
+            content.push_str(next_c.to_string().as_str());
+        }
+
+        let mut token = Token {
+            ttype: TokenType::Identifier,
+            lexeme: content.clone(),
+            line_num: self.line,
+        };
+
+        if let Some(keyword) = get_reserved_keyword(content.as_str()) {
+            token.ttype = keyword;
+        }
+
+        return Ok(token);
     }
 }

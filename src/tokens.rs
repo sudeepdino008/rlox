@@ -1,5 +1,7 @@
+use phf::phf_map;
+
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TokenType {
     // single character tokens
     LeftParen,
@@ -55,4 +57,27 @@ pub struct Token {
     pub ttype: TokenType,
     pub lexeme: String,
     pub line_num: u32,
+}
+
+static RESERVED_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+    "And" => TokenType::And,
+    "Class" => TokenType::Class,
+    "Else" => TokenType::Else,
+    "False" => TokenType::False,
+    "Fun" => TokenType::Fun,
+    "For" => TokenType::For,
+    "If" => TokenType::If,
+    "Nil" => TokenType::Nil,
+    "Or" => TokenType::Or,
+    "Print" => TokenType::Print,
+    "Return" => TokenType::Return,
+    "Super" => TokenType::Super,
+    "This" => TokenType::This,
+    "True" => TokenType::True,
+    "Var" => TokenType::Var,
+    "While" => TokenType::While,
+};
+
+pub fn get_reserved_keyword(keyword: &str) -> Option<TokenType> {
+    RESERVED_KEYWORDS.get(keyword).cloned()
 }
