@@ -1,11 +1,13 @@
+mod ast;
 mod errors;
 mod scanner;
 mod tokens;
+mod utils;
 
 use std::{
     cell::RefCell,
     env,
-    fs::{self, File},
+    fs::File,
     io::{self, BufRead, BufReader, Cursor, Write},
     process::exit,
 };

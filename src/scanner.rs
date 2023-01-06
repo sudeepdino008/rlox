@@ -1,7 +1,6 @@
-use crate::errors;
 use crate::tokens::{get_reserved_keyword, Token, TokenType};
 
-use std::io::{prelude::*, BufWriter, ErrorKind, SeekFrom};
+use std::io::{prelude::*, ErrorKind, SeekFrom};
 use std::iter::Iterator;
 
 pub(crate) struct Scanner<R>
