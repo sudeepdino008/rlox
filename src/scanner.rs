@@ -292,6 +292,8 @@ impl<R: Read + Seek> Scanner<R> {
 
     fn extract_string_token(&mut self) -> Result<String, String> {
         let mut string_content = String::new();
+        // TODO: the extract* methods seem to have a common pattern of peek/advance, filter, accumulate etc. Might
+        // have a lambda accepting function here.
         loop {
             let c = self.advance();
 
