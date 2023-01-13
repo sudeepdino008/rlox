@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub mod error_handling {
     pub struct ErrorState {
         pub error_occured: bool,

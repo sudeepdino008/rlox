@@ -1,19 +1,37 @@
-use std::any::Any;
+use std::rc::Rc;
 
-use crate::ast::{Binary, ElementType, ExprT, Expression, Grouping, Literal, Unary, Visitor};
+use crate::{
+    ast::{Binary, ElementType, Expression, Grouping, Literal, Unary, Visitor},
+    tokens::TokenType,
+};
 
-struct AstPrinter {}
+pub struct AstPrinter {}
 
 impl Visitor<String> for AstPrinter {
     fn visit_expression(&self, expr: &Expression) -> String {
-        self.visit(
-            expr.value.as_ref().element_type(),
-            Box::new(&expr.value.as_ref() as &dyn Any),
-        )
+        let vall = Rc::clone(&expr.value);
+        return match expr.value.as_ref().element_type() {
+            ElementType::Literal => {
+                self.visit_literal(vall.as_ref().as_any().downcast_ref::<Literal>().unwrap())
+            }
+            ElementType::Grouping => {
+                self.visit_grouping(vall.as_ref().as_any().downcast_ref::<Grouping>().unwrap())
+            }
+            ElementType::Unary => {
+                self.visit_unary(vall.as_ref().as_any().downcast_ref::<Unary>().unwrap())
+            }
+            ElementType::Binary => {
+                self.visit_binary(vall.as_ref().as_any().downcast_ref::<Binary>().unwrap())
+            }
+        };
     }
 
     fn visit_literal(&self, lit: &Literal) -> String {
-        lit.value.lexeme.clone()
+        match &lit.value.ttype {
+            TokenType::String(contents) => contents.to_string(),
+            TokenType::Number(num) => num.to_string(),
+            _ => lit.value.lexeme.clone(),
+        }
     }
 
     fn visit_grouping(&self, grp: &Grouping) -> String {
@@ -41,20 +59,8 @@ impl Visitor<String> for AstPrinter {
     }
 }
 
-impl AstPrinter {
-    fn parenthesize(name: String, exprs: &[Box<dyn ExprT>]) -> String {
-        return "".to_string();
-    }
-
-    fn visit(&self, element_type: ElementType, expr: Box<dyn Any>) -> String {
-        match element_type {
-            Expression => self.visit_expression(expr.downcast_ref::<Expression>().unwrap()),
-            Literal => self.visit_literal(expr.downcast_ref::<Literal>().unwrap()),
-            Grouping => self.visit_grouping(expr.downcast_ref::<Grouping>().unwrap()),
-            Unary => self.visit_unary(expr.downcast_ref::<Unary>().unwrap()),
-            Binary => self.visit_binary(expr.downcast_ref::<Binary>().unwrap()),
-        };
-
-        "".to_string()
-    }
-}
+// impl AstPrinter {
+//     fn parenthesize(name: String, exprs: &[Box<dyn ExprT>]) -> String {
+//         return "".to_string();
+//     }
+// }

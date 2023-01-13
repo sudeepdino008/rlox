@@ -1,7 +1,8 @@
+use std::{any::Any, rc::Rc};
+
 use crate::tokens::Token;
 
 pub enum ElementType {
-    Expression,
     Literal,
     Grouping,
     Unary,
@@ -10,6 +11,7 @@ pub enum ElementType {
 
 pub trait ExprT {
     fn element_type(&self) -> ElementType;
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub trait Visitor<Ret> {
@@ -21,8 +23,9 @@ pub trait Visitor<Ret> {
 }
 
 // expression
+
 pub struct Expression {
-    pub value: Box<dyn ExprT>,
+    pub value: Rc<dyn ExprT>,
 }
 
 // literals
@@ -34,6 +37,10 @@ impl ExprT for Literal {
     fn element_type(&self) -> ElementType {
         ElementType::Literal
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 // grouping
@@ -44,6 +51,10 @@ pub struct Grouping {
 impl ExprT for Grouping {
     fn element_type(&self) -> ElementType {
         ElementType::Grouping
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
@@ -57,6 +68,10 @@ impl ExprT for Unary {
     fn element_type(&self) -> ElementType {
         ElementType::Unary
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 // binary
@@ -69,5 +84,9 @@ pub struct Binary {
 impl ExprT for Binary {
     fn element_type(&self) -> ElementType {
         ElementType::Binary
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

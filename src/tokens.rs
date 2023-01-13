@@ -81,3 +81,11 @@ static RESERVED_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 pub fn get_reserved_keyword(keyword: &str) -> Option<TokenType> {
     RESERVED_KEYWORDS.get(keyword).cloned()
 }
+
+pub fn new_token(ttype: TokenType) -> Token {
+    Token {
+        ttype,
+        lexeme: "".to_string(),
+        line_num: 0,
+    }
+}

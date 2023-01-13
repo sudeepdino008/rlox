@@ -3,6 +3,7 @@ use crate::tokens::{get_reserved_keyword, Token, TokenType};
 use std::io::{prelude::*, ErrorKind, SeekFrom};
 use std::iter::Iterator;
 
+#[allow(dead_code)]
 pub(crate) struct Scanner<R>
 where
     R: Read + Seek,
@@ -41,6 +42,7 @@ impl<R: Read + Seek> Iterator for Scanner<R> {
 }
 
 impl<R: Read + Seek> Scanner<R> {
+    #[allow(dead_code)]
     pub fn build_scanner(reader: R) -> Scanner<R> {
         return Scanner {
             contents: reader,
