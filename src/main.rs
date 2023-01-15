@@ -26,7 +26,7 @@ use scanner::Scanner;
 thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState { error_occured: false }));
 
 fn main() {
-    //try_ast_printer();
+    try_ast_printer();
 
     println!("Hello, world!");
     let args: Vec<String> = env::args().collect();
@@ -109,7 +109,7 @@ fn try_ast_printer() {
     // binary         → expression operator expression ;
     // operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
     //                | "+"  | "-"  | "*" | "/" ;
-    // 2 + 3
+    // 4*(2 + 3)
 
     let e1 = get_num_literal(2.0);
     let e2 = get_num_literal(3.0);

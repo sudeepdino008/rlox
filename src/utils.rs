@@ -35,32 +35,39 @@ impl Visitor<String> for AstPrinter {
     }
 
     fn visit_grouping(&self, grp: &Grouping) -> String {
-        let mut content = String::new();
-        content.push_str("(");
-        content.push_str(&self.visit_expression(&grp.expr));
-        content.push_str(")");
-
-        return content;
+        let mut exprs = Vec::new();
+        exprs.push("group".to_string());
+        exprs.push(self.visit_expression(&grp.expr));
+        self.parenthesize(exprs)
     }
 
     fn visit_unary(&self, unr: &Unary) -> String {
-        let mut content = String::new();
-        content.push_str(&unr.operator.lexeme);
-        content.push_str(&self.visit_expression(&unr.expr));
-        return content;
+        let mut exprs = Vec::new();
+        exprs.push(unr.operator.lexeme.clone());
+        exprs.push(self.visit_expression(&unr.expr));
+        self.parenthesize(exprs)
     }
 
     fn visit_binary(&self, bin: &Binary) -> String {
-        let mut content = String::new();
-        content.push_str(&self.visit_expression(&bin.left));
-        content.push_str(&bin.operator.lexeme);
-        content.push_str(&self.visit_expression(&bin.right));
-        return content;
+        let mut exprs = Vec::new();
+        exprs.push(bin.operator.lexeme.clone());
+        exprs.push(self.visit_expression(&bin.left));
+        exprs.push(self.visit_expression(&bin.right));
+        self.parenthesize(exprs)
     }
 }
 
-// impl AstPrinter {
-//     fn parenthesize(name: String, exprs: &[Box<dyn ExprT>]) -> String {
-//         return "".to_string();
-//     }
-// }
+impl AstPrinter {
+    fn parenthesize(&self, exprs: Vec<String>) -> String {
+        let mut content = String::new();
+        content.push_str("(");
+
+        for expr in exprs {
+            content.push_str(expr.as_str());
+            content.push_str(" ");
+        }
+
+        content.push_str(")");
+        return content;
+    }
+}
