@@ -15,7 +15,24 @@ pub trait ExprT {
 }
 
 pub trait Visitor<Ret> {
-    fn visit_expression(&self, expr: &Expression) -> Ret;
+    fn visit_expression(&self, expr: &Expression) -> Ret {
+        let vall = expr.value.clone();
+        return match expr.value.as_ref().element_type() {
+            ElementType::Literal => {
+                self.visit_literal(vall.as_ref().as_any().downcast_ref::<Literal>().unwrap())
+            }
+            ElementType::Grouping => {
+                self.visit_grouping(vall.as_ref().as_any().downcast_ref::<Grouping>().unwrap())
+            }
+            ElementType::Unary => {
+                self.visit_unary(vall.as_ref().as_any().downcast_ref::<Unary>().unwrap())
+            }
+            ElementType::Binary => {
+                self.visit_binary(vall.as_ref().as_any().downcast_ref::<Binary>().unwrap())
+            }
+        };
+    }
+
     fn visit_literal(&self, lit: &Literal) -> Ret;
     fn visit_grouping(&self, grp: &Grouping) -> Ret;
     fn visit_unary(&self, unr: &Unary) -> Ret;
