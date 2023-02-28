@@ -108,7 +108,7 @@ impl ExprT for Binary {
     }
 }
 
-pub mod ExprUtils {
+pub mod expr_utils {
     use std::rc::Rc;
 
     use crate::tokens::{new_token, TokenType};

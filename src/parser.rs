@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    ast::{Binary, ExprT, ExprUtils::wrap_expr, Expression},
+    ast::{expr_utils::wrap_expr, Binary, Expression, Grouping, Literal, Unary},
     tokens::{Token, TokenType},
 };
 
@@ -23,6 +23,7 @@ primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" ;
 */
 
+#[allow(dead_code)]
 impl Parser {
     pub fn new(tokens: Vec<Rc<Token>>) -> Parser {
         Parser {
@@ -53,17 +54,6 @@ impl Parser {
             ],
         )
     }
-    /*
-    expression     → equality ;
-    equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    term           → factor ( ( "-" | "+" ) factor )* ;
-    factor         → unary ( ( "/" | "*" ) unary )* ;
-    unary          → ( "!" | "-" ) unary
-                   | primary ;
-    primary        → NUMBER | STRING | "true" | "false" | "nil"
-                   | "(" expression ")" ;
-    */
 
     pub fn term(&mut self) -> Expression {
         self.binary_break(
@@ -73,7 +63,42 @@ impl Parser {
     }
 
     pub fn factor(&mut self) -> Expression {
-        todo!()
+        self.binary_break(
+            |p: &mut Parser| p.unary(),
+            &[TokenType::Slash, TokenType::Star],
+        )
+    }
+
+    pub fn unary(&mut self) -> Expression {
+        if self.match_t(&[TokenType::Bang, TokenType::Minus]) {
+            let operator = self.previous();
+            let expr = self.unary();
+            wrap_expr(Unary { operator, expr })
+        } else {
+            self.primary()
+        }
+    }
+
+    pub fn primary(&mut self) -> Expression {
+        if self.match_t(&[TokenType::LeftBrace]) {
+            let expr = self.expression();
+            assert!(self.match_t(&[TokenType::RightBrace]));
+            return wrap_expr(Grouping { expr });
+        }
+
+        if self.match_t(&[
+            TokenType::False,
+            TokenType::True,
+            TokenType::Nil,
+            TokenType::String("".to_string()),
+            TokenType::Number(0.0),
+        ]) {}
+        assert!(!self.is_end());
+
+        let expr = self.peek();
+        self.advance();
+
+        wrap_expr(Literal { value: expr })
     }
 
     fn binary_break(
@@ -112,7 +137,8 @@ impl Parser {
     }
 
     fn check(&self, ttype: TokenType) -> bool {
-        !self.is_end() && self.peek().ttype == ttype
+        !self.is_end()
+            && std::mem::discriminant(&self.peek().ttype) == std::mem::discriminant(&ttype)
     }
 
     fn peek(&self) -> Rc<Token> {

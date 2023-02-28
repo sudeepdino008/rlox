@@ -14,7 +14,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast::{ExprUtils::*, Unary};
+use crate::ast::{expr_utils::*, Unary};
 use crate::utils::AstPrinter;
 use crate::utils::RpnPrinter;
 use crate::{ast::Binary, tokens::Token};
