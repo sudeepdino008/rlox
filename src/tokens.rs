@@ -1,7 +1,7 @@
 use phf::phf_map;
 
 #[allow(dead_code)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // single character tokens
     LeftParen,

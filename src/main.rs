@@ -1,5 +1,6 @@
 mod ast;
 mod errors;
+mod parser;
 mod scanner;
 mod tokens;
 mod utils;
@@ -13,17 +14,13 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast::{Literal, Unary};
+use crate::ast::{ExprUtils::*, Unary};
 use crate::utils::AstPrinter;
+use crate::utils::RpnPrinter;
 use crate::{ast::Binary, tokens::Token};
-use crate::{
-    ast::{Expression, Grouping},
-    utils::RpnPrinter,
-};
 
 use crate::ast::Visitor;
-use crate::tokens::{new_token, TokenType};
-use ast::ExprT;
+use crate::tokens::TokenType;
 use errors::error_handling::ErrorState;
 use scanner::Scanner;
 
@@ -119,11 +116,11 @@ fn try_ast_printer() {
     let e2 = get_num_literal(3.0);
     let b1 = wrap_expr(Binary {
         left: e1,
-        operator: Token {
+        operator: Rc::new(Token {
             ttype: TokenType::Plus,
             lexeme: "+".to_string(),
             line_num: 0,
-        },
+        }),
         right: e2,
     });
 
@@ -132,11 +129,11 @@ fn try_ast_printer() {
     let e3 = get_num_literal(4.0);
     let b2 = wrap_expr(Binary {
         left: e3,
-        operator: Token {
+        operator: Rc::new(Token {
             ttype: TokenType::Star,
             lexeme: "*".to_string(),
             line_num: 0,
-        },
+        }),
         right: g1,
     });
 
@@ -149,43 +146,23 @@ fn try_ast_printer() {
 
     let e2 = get_num_literal(123.0);
     let e3 = wrap_expr(Unary {
-        operator: Token {
+        operator: Rc::new(Token {
             ttype: TokenType::Minus,
             lexeme: "-".to_string(),
             line_num: 0,
-        },
+        }),
         expr: e2,
     });
 
     let b2 = wrap_expr(Binary {
         left: g1,
-        operator: Token {
+        operator: Rc::new(Token {
             ttype: TokenType::Star,
             lexeme: "*".to_string(),
             line_num: 0,
-        },
+        }),
         right: e3,
     });
     println!("ast: {}", AstPrinter {}.visit_expression(&b2));
     println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
-}
-
-fn get_num_literal(num: f64) -> Expression {
-    Expression {
-        value: Rc::new(Literal {
-            value: new_token(TokenType::Number(num)),
-        }),
-    }
-}
-
-fn wrap_expr<T: ExprT + 'static>(una: T) -> Expression {
-    Expression {
-        value: Rc::new(una),
-    }
-}
-
-fn group_expr(expr: Expression) -> Expression {
-    Expression {
-        value: Rc::new(Grouping { expr }),
-    }
 }

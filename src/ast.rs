@@ -47,7 +47,7 @@ pub struct Expression {
 
 // literals
 pub struct Literal {
-    pub value: Token,
+    pub value: Rc<Token>,
 }
 
 impl ExprT for Literal {
@@ -77,7 +77,7 @@ impl ExprT for Grouping {
 
 // unary
 pub struct Unary {
-    pub operator: Token,
+    pub operator: Rc<Token>,
     pub expr: Expression,
 }
 
@@ -94,7 +94,7 @@ impl ExprT for Unary {
 // binary
 pub struct Binary {
     pub left: Expression,
-    pub operator: Token,
+    pub operator: Rc<Token>,
     pub right: Expression,
 }
 
@@ -105,5 +105,33 @@ impl ExprT for Binary {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+}
+
+pub mod ExprUtils {
+    use std::rc::Rc;
+
+    use crate::tokens::{new_token, TokenType};
+
+    use super::{ExprT, Expression, Grouping, Literal};
+
+    pub fn wrap_expr<T: ExprT + 'static>(inner: T) -> Expression {
+        Expression {
+            value: Rc::new(inner),
+        }
+    }
+
+    pub fn get_num_literal(num: f64) -> Expression {
+        Expression {
+            value: Rc::new(Literal {
+                value: Rc::new(new_token(TokenType::Number(num))),
+            }),
+        }
+    }
+
+    pub fn group_expr(expr: Expression) -> Expression {
+        Expression {
+            value: Rc::new(Grouping { expr }),
+        }
     }
 }
