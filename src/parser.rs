@@ -5,6 +5,8 @@ use crate::{
     tokens::{Token, TokenType},
 };
 
+static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
+
 #[allow(dead_code)]
 pub(crate) struct Parser {
     pub tokens: Vec<Rc<Token>>,
@@ -82,7 +84,7 @@ impl Parser {
     pub fn primary(&mut self) -> Expression {
         if self.match_t(&[TokenType::LeftBrace]) {
             let expr = self.expression();
-            assert!(self.match_t(&[TokenType::RightBrace]));
+            self.consume(&TokenType::RightBrace, "right brace missing");
             return wrap_expr(Grouping { expr });
         }
 
@@ -92,13 +94,13 @@ impl Parser {
             TokenType::Nil,
             TokenType::String("".to_string()),
             TokenType::Number(0.0),
-        ]) {}
-        assert!(!self.is_end());
-
-        let expr = self.peek();
-        self.advance();
-
-        wrap_expr(Literal { value: expr })
+        ]) {
+            let expr = self.previous();
+            wrap_expr(Literal { value: expr })
+        } else {
+            let token = self.previous();
+            self.error(&token.ttype, "literal expected");
+        }
     }
 
     fn binary_break(
@@ -123,7 +125,7 @@ impl Parser {
 
     fn match_t(&mut self, tokens_types: &[TokenType]) -> bool {
         for ttype in tokens_types {
-            if self.check(ttype.clone()) {
+            if self.check(ttype) {
                 self.advance();
                 return true;
             }
@@ -136,7 +138,7 @@ impl Parser {
         self.token_cursor += self.token_cursor + 1;
     }
 
-    fn check(&self, ttype: TokenType) -> bool {
+    fn check(&self, ttype: &TokenType) -> bool {
         !self.is_end()
             && std::mem::discriminant(&self.peek().ttype) == std::mem::discriminant(&ttype)
     }
@@ -151,5 +153,18 @@ impl Parser {
 
     fn previous(&self) -> Rc<Token> {
         self.tokens[self.token_cursor - 1].clone()
+    }
+
+    fn consume(&mut self, ttype: &TokenType, errmsg: &str) {
+        if self.check(&ttype) {
+            return self.advance();
+        }
+
+        self.error(&ttype, errmsg);
+    }
+
+    fn error(&mut self, ttype: &TokenType, errmsg: &str) -> ! { //diverging function
+        eprintln!("error for {:?}: {}", ttype, errmsg);
+        panic!("{}{}", PARSER_ERR_TAG, errmsg);
     }
 }
