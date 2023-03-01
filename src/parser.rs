@@ -1,4 +1,7 @@
-use std::rc::Rc;
+use std::{
+    panic::{self, AssertUnwindSafe},
+    rc::Rc,
+};
 
 use crate::{
     ast::{expr_utils::wrap_expr, Binary, Expression, Grouping, Literal, Unary},
@@ -32,6 +35,27 @@ impl Parser {
             tokens,
             token_cursor: 0,
         }
+    }
+
+    pub fn parse(&mut self) -> Result<Expression, String> {
+        // special handling based on parser error tag
+        let prev = panic::take_hook();
+        panic::set_hook(Box::new(move |info| {
+            if let Some(s) = info.payload().downcast_ref::<&str>() {
+                if s.starts_with(PARSER_ERR_TAG) {
+                    eprintln!("parser error: {s:?}");
+                    return;
+                }
+            }
+            prev(info);
+        }));
+
+        let result = panic::catch_unwind(AssertUnwindSafe(|| self.expression()));
+        return if let Ok(exp) = result {
+            Ok(exp)
+        } else {
+            Err("parser error".to_string())
+        };
     }
 
     pub fn expression(&mut self) -> Expression {
@@ -163,8 +187,33 @@ impl Parser {
         self.error(&ttype, errmsg);
     }
 
-    fn error(&mut self, ttype: &TokenType, errmsg: &str) -> ! { //diverging function
+    fn error(&mut self, ttype: &TokenType, errmsg: &str) -> ! {
+        //diverging function
         eprintln!("error for {:?}: {}", ttype, errmsg);
         panic!("{}{}", PARSER_ERR_TAG, errmsg);
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_end() {
+            if self.previous().ttype == TokenType::Semicolon {
+                return;
+            }
+
+            match self.peek().ttype {
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => return,
+                _ => {}
+            }
+
+            self.advance();
+        }
     }
 }

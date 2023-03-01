@@ -22,12 +22,13 @@ use crate::{ast::Binary, tokens::Token};
 use crate::ast::Visitor;
 use crate::tokens::TokenType;
 use errors::error_handling::ErrorState;
+use parser::Parser;
 use scanner::Scanner;
 
 thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState { error_occured: false }));
 
 fn main() {
-    try_ast_printer();
+    //try_ast_printer();
 
     println!("Hello, world!");
     let args: Vec<String> = env::args().collect();
@@ -66,19 +67,42 @@ fn run_prompt() {
 #[allow(dead_code)]
 fn run_file(filename: &str) {
     let scanner = Scanner::build_scanner(BufReader::new(File::open(filename).unwrap()));
+    let mut tokens = Vec::new();
     for lexeme in scanner {
-        println!("{:?}", lexeme);
+        if lexeme.is_err() {
+            eprintln!("stalled due to error");
+            //exit_if_error();
+            return;
+        }
+        tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
-    exit_if_error();
+
+    parse_tokens(tokens);
+    //exit_if_error();
 }
 
 fn run_line(contents: &str) {
     let cursor = Cursor::new(contents.as_bytes());
     let scanner = Scanner::build_scanner(BufReader::new(cursor));
+    let mut tokens = Vec::new();
     for lexeme in scanner {
-        println!("{:?}", lexeme);
+        if lexeme.is_err() {
+            eprintln!("error in inpur");
+            return;
+        }
+        tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
-    println!("well came this far!");
+    parse_tokens(tokens);
+}
+
+fn parse_tokens(tokens: Vec<Rc<Token>>) {
+    let mut parser = Parser::new(tokens);
+    match parser.parse() {
+        Ok(result) => {
+            AstPrinter {}.visit_expression(&result);
+        }
+        Err(_) => {}
+    }
 }
 
 fn exit_if_error() {
