@@ -78,22 +78,22 @@ impl<R: Read + Seek> Scanner<R> {
                 line_num: self.line,
             },
             "(" => Token {
-                ttype: TokenType::LeftParen,
-                lexeme: next_char.to_string(),
-                line_num: self.line,
-            },
-            ")" => Token {
-                ttype: TokenType::RightParen,
-                lexeme: next_char.to_string(),
-                line_num: self.line,
-            },
-            "{" => Token {
                 ttype: TokenType::LeftBrace,
                 lexeme: next_char.to_string(),
                 line_num: self.line,
             },
-            "}" => Token {
+            ")" => Token {
                 ttype: TokenType::RightBrace,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "{" => Token {
+                ttype: TokenType::LeftParen,
+                lexeme: next_char.to_string(),
+                line_num: self.line,
+            },
+            "}" => Token {
+                ttype: TokenType::RightParen,
                 lexeme: next_char.to_string(),
                 line_num: self.line,
             },
@@ -115,6 +115,7 @@ impl<R: Read + Seek> Scanner<R> {
             "!" => {
                 let is_bang_equal = self.match_curr("=");
                 let (token_type, lexeme) = if is_bang_equal {
+                    _ = self.advance();
                     (TokenType::BangEqual, "!=")
                 } else {
                     (TokenType::Bang, "!")
@@ -129,6 +130,7 @@ impl<R: Read + Seek> Scanner<R> {
             "=" => {
                 let is_equal_equal = self.match_curr("=");
                 let (token_type, lexeme) = if is_equal_equal {
+                    _ = self.advance();
                     (TokenType::EqualEqual, "==")
                 } else {
                     (TokenType::Equal, "=")
@@ -158,6 +160,7 @@ impl<R: Read + Seek> Scanner<R> {
             ">" => {
                 let is_greater_equal = self.match_curr("=");
                 let (token_type, lexeme) = if is_greater_equal {
+                    _ = self.advance();
                     (TokenType::GreaterEqual, ">=")
                 } else {
                     (TokenType::Greater, ">")

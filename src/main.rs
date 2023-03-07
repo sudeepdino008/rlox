@@ -97,11 +97,17 @@ fn run_line(contents: &str) {
 
 fn parse_tokens(tokens: Vec<Rc<Token>>) {
     let mut parser = Parser::new(tokens);
+    eprintln!("wokay!!");
     match parser.parse() {
         Ok(result) => {
-            AstPrinter {}.visit_expression(&result);
+            println!(
+                "parsed expression: \n{}",
+                AstPrinter {}.visit_expression(&result)
+            );
         }
-        Err(_) => {}
+        Err(msg) => {
+            eprint!("error parsing tokens:{}", msg);
+        }
     }
 }
 

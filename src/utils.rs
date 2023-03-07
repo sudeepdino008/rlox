@@ -43,8 +43,8 @@ impl AstPrinter {
         content.push_str("(");
 
         for expr in exprs {
-            content.push_str(expr.as_str());
             content.push_str(" ");
+            content.push_str(expr.as_str());
         }
 
         content.push_str(")");

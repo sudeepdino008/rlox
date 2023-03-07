@@ -159,12 +159,12 @@ impl Parser {
     }
 
     fn advance(&mut self) {
-        self.token_cursor += self.token_cursor + 1;
+        self.token_cursor += 1;
     }
 
     fn check(&self, ttype: &TokenType) -> bool {
         !self.is_end()
-            && std::mem::discriminant(&self.peek().ttype) == std::mem::discriminant(&ttype)
+            && std::mem::discriminant(&self.peek().ttype) == std::mem::discriminant(ttype)
     }
 
     fn peek(&self) -> Rc<Token> {
