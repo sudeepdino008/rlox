@@ -1,9 +1,10 @@
 mod ast;
 mod errors;
+mod interpreter;
 mod parser;
+mod printer;
 mod scanner;
 mod tokens;
-mod utils;
 
 use std::{
     cell::RefCell,
@@ -15,13 +16,15 @@ use std::{
 };
 
 use crate::ast::{expr_utils::*, Unary};
-use crate::utils::AstPrinter;
-use crate::utils::RpnPrinter;
+use crate::printer::AstPrinter;
+use crate::printer::RpnPrinter;
 use crate::{ast::Binary, tokens::Token};
 
 use crate::ast::Visitor;
 use crate::tokens::TokenType;
+use ast::Expression;
 use errors::error_handling::ErrorState;
+use interpreter::Interpreter;
 use parser::Parser;
 use scanner::Scanner;
 
@@ -92,10 +95,16 @@ fn run_line(contents: &str) {
         }
         tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
-    parse_tokens(tokens);
+    match parse_tokens(tokens) {
+        Some(expr) => {
+            let result = Interpreter {}.visit_expression(&expr);
+            println!("output:\n{:?}", result);
+        }
+        None => {}
+    }
 }
 
-fn parse_tokens(tokens: Vec<Rc<Token>>) {
+fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<Expression> {
     let mut parser = Parser::new(tokens);
     eprintln!("wokay!!");
     match parser.parse() {
@@ -104,9 +113,11 @@ fn parse_tokens(tokens: Vec<Rc<Token>>) {
                 "parsed expression: \n{}",
                 AstPrinter {}.visit_expression(&result)
             );
+            return Some(result);
         }
         Err(msg) => {
             eprint!("error parsing tokens:{}", msg);
+            return None;
         }
     }
 }
