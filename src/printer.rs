@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Binary, Grouping, Literal, Unary, Visitor},
+    ast::{self, Binary, Grouping, Literal, Unary, Visitor},
     tokens::TokenType,
 };
 
@@ -33,6 +33,13 @@ impl Visitor<String> for AstPrinter {
         exprs.push(bin.operator.lexeme.clone());
         exprs.push(self.visit_expression(&bin.left));
         exprs.push(self.visit_expression(&bin.right));
+        self.parenthesize(exprs)
+    }
+
+    fn visit_print_stmt(&self, stmt: &ast::PrintStmt) -> String {
+        let mut exprs = Vec::new();
+        exprs.push("print".to_string());
+        exprs.push(self.visit_expression(&stmt.value));
         self.parenthesize(exprs)
     }
 }
@@ -83,6 +90,13 @@ impl Visitor<String> for RpnPrinter {
         exprs.push(self.visit_expression(&bin.left));
         exprs.push(self.visit_expression(&bin.right));
         exprs.push(bin.operator.lexeme.clone());
+        self.stringify(exprs)
+    }
+
+    fn visit_print_stmt(&self, stmt: &ast::PrintStmt) -> String {
+        let mut exprs = Vec::new();
+        exprs.push(self.visit_expression(&stmt.value));
+        exprs.push("print".to_string());
         self.stringify(exprs)
     }
 }

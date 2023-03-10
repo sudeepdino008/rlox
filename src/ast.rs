@@ -1,4 +1,5 @@
-use std::{any::Any, rc::Rc};
+use as_any::AsAny;
+use std::rc::Rc;
 
 use crate::tokens::Token;
 
@@ -9,12 +10,37 @@ pub enum ElementType {
     Binary,
 }
 
-pub trait ExprT {
+pub trait ExprT: AsAny {
     fn element_type(&self) -> ElementType;
-    fn as_any(&self) -> &dyn Any;
 }
 
+#[derive(PartialEq)]
+pub enum StmtType {
+    Expression,
+    Print,
+}
+pub trait StmtT: AsAny {
+    fn stmt_type(&self) -> StmtType;
+    fn is_print(&self) -> bool {
+        self.stmt_type() == StmtType::Print
+    }
+}
+
+pub type StmtRef = Rc<dyn StmtT>;
+
 pub trait Visitor<Ret> {
+    fn visit_statement(&self, stmt: StmtRef) -> Ret {
+        if stmt.is_print() {
+            self.visit_print_stmt(stmt.as_ref().as_any().downcast_ref::<PrintStmt>().unwrap())
+        } else {
+            self.visit_expression_stmt(stmt.as_ref().as_any().downcast_ref::<ExprStmt>().unwrap())
+        }
+    }
+    fn visit_print_stmt(&self, stmt: &PrintStmt) -> Ret;
+    fn visit_expression_stmt(&self, stmt: &ExprStmt) -> Ret {
+        self.visit_expression(&stmt.value)
+    }
+
     fn visit_expression(&self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();
         return match expr.value.as_ref().element_type() {
@@ -39,6 +65,24 @@ pub trait Visitor<Ret> {
     fn visit_binary(&self, bin: &Binary) -> Ret;
 }
 
+pub struct ExprStmt {
+    pub value: Rc<Expression>,
+}
+impl StmtT for ExprStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::Expression
+    }
+}
+
+pub struct PrintStmt {
+    pub value: Rc<Expression>,
+}
+impl StmtT for PrintStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::Print
+    }
+}
+
 // expression
 
 pub struct Expression {
@@ -54,10 +98,6 @@ impl ExprT for Literal {
     fn element_type(&self) -> ElementType {
         ElementType::Literal
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 // grouping
@@ -68,10 +108,6 @@ pub struct Grouping {
 impl ExprT for Grouping {
     fn element_type(&self) -> ElementType {
         ElementType::Grouping
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 
@@ -85,10 +121,6 @@ impl ExprT for Unary {
     fn element_type(&self) -> ElementType {
         ElementType::Unary
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 // binary
@@ -101,10 +133,6 @@ pub struct Binary {
 impl ExprT for Binary {
     fn element_type(&self) -> ElementType {
         ElementType::Binary
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

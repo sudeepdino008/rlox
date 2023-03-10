@@ -22,7 +22,7 @@ use crate::{ast::Binary, tokens::Token};
 
 use crate::ast::Visitor;
 use crate::tokens::TokenType;
-use ast::Expression;
+use ast::StmtRef;
 use errors::error_handling::ErrorState;
 use interpreter::Interpreter;
 use parser::Parser;
@@ -52,7 +52,7 @@ fn run_prompt() {
     loop {
         // simply moving this line outside the loop will append to this "line" variable and not just store the current input
         let mut line = String::new();
-        print!("rlox> ");
+        print!("\nrlox> ");
         io::stdout().flush().unwrap();
         match io::stdin().lock().read_line(&mut line) {
             Err(why) => {
@@ -61,7 +61,9 @@ fn run_prompt() {
             }
             Ok(_) => {}
         }
-        println!("the line is: {}", line);
+        if line.trim().len() == 0 {
+            continue;
+        }
         run_line(&line);
         set_error(false);
     }
@@ -97,31 +99,34 @@ fn run_line(contents: &str) {
     }
     match parse_tokens(tokens) {
         Some(expr) => {
-            let result = Interpreter {}.visit_expression(&expr);
-            println!("output:\n{:?}", result);
+            let result = Interpreter {}.interpret(expr);
+            match result {
+                Ok(result) => println!("{}", result),
+                Err(msg) => eprintln!("error: {}", msg),
+            };
         }
         None => {}
     }
 }
 
-fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<Expression> {
+fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<StmtRef> {
     let mut parser = Parser::new(tokens);
-    eprintln!("wokay!!");
     match parser.parse() {
         Ok(result) => {
             println!(
-                "parsed expression: \n{}",
-                AstPrinter {}.visit_expression(&result)
+                "parsed expression: {}\n",
+                AstPrinter {}.visit_statement(Rc::clone(&result))
             );
             return Some(result);
         }
-        Err(msg) => {
-            eprint!("error parsing tokens:{}", msg);
+        Err(_) => {
+            //eprint!("error parsing tokens:{}", msg);
             return None;
         }
     }
 }
 
+#[allow(dead_code)]
 fn exit_if_error() {
     ERROR_STATE.with(|val| {
         if val.borrow().error_occured {

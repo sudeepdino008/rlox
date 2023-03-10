@@ -4,7 +4,10 @@ use std::{
 };
 
 use crate::{
-    ast::{expr_utils::wrap_expr, Binary, Expression, Grouping, Literal, Unary},
+    ast::{
+        expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
+        Unary,
+    },
     tokens::{Token, TokenType},
 };
 
@@ -26,6 +29,13 @@ unary          → ( "!" | "-" ) unary
                | primary ;
 primary        → NUMBER | STRING | "true" | "false" | "nil"
                | "(" expression ")" ;
+
+
+program -> statement* EOF ;
+statement -> exprStmt | printStmt ;
+exprStmt -> expression ";" ;
+printStmt -> "print" expression ";" ;
+
 */
 
 #[allow(dead_code)]
@@ -37,25 +47,47 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expression, String> {
+    pub fn parse(&mut self) -> Result<StmtRef, String> {
         // special handling based on parser error tag
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
-            if let Some(s) = info.payload().downcast_ref::<&str>() {
+            if let Some(s) = info.payload().downcast_ref::<String>() {
                 if s.starts_with(PARSER_ERR_TAG) {
-                    eprintln!("parser error: {s:?}");
+                    eprintln!("{s:?}");
                     return;
                 }
             }
             prev(info);
         }));
 
-        let result = panic::catch_unwind(AssertUnwindSafe(|| self.expression()));
-        return if let Ok(exp) = result {
-            Ok(exp)
+        match panic::catch_unwind(AssertUnwindSafe(|| self.statement())) {
+            Ok(stmt) => Ok(stmt),
+            Err(_) => Err("parser error".to_string()),
+        }
+    }
+
+    pub fn statement(&mut self) -> StmtRef {
+        if self.match_t(&[TokenType::Print]) {
+            Rc::new(self.print_stmt())
         } else {
-            Err("parser error".to_string())
-        };
+            Rc::new(self.expr_stmt())
+        }
+    }
+
+    pub fn print_stmt(&mut self) -> PrintStmt {
+        let value = self.expression();
+        self.consume(&TokenType::Semicolon, "semicolon missing");
+        PrintStmt {
+            value: Rc::new(value),
+        }
+    }
+
+    pub fn expr_stmt(&mut self) -> ExprStmt {
+        let value = self.expression();
+        self.consume(&TokenType::Semicolon, "semicolon missing");
+        ExprStmt {
+            value: Rc::new(value),
+        }
     }
 
     pub fn expression(&mut self) -> Expression {
@@ -187,9 +219,9 @@ impl Parser {
         self.error(&ttype, errmsg);
     }
 
-    fn error(&mut self, ttype: &TokenType, errmsg: &str) -> ! {
+    fn error(&mut self, _ttype: &TokenType, errmsg: &str) -> ! {
         //diverging function
-        eprintln!("error for {:?}: {}", ttype, errmsg);
+        //eprintln!("error for {:?}: {}", ttype, errmsg);
         panic!("{}{}", PARSER_ERR_TAG, errmsg);
     }
 

@@ -1,18 +1,36 @@
+use std::{
+    fmt::Display,
+    panic::{self, AssertUnwindSafe},
+};
+
 use crate::{
-    ast::{Binary, Grouping, Literal, Unary, Visitor},
+    ast::{self, Binary, Grouping, Literal, StmtRef, Unary, Visitor},
     tokens::TokenType,
 };
+
+use crate::interpreter::IResult::{Bool, None, Number, String};
 
 static INTERPRETER_ERR_TAG: &'static str = "INTERPRETER_ERROR:";
 pub struct Interpreter {}
 
-#[derive(Debug)]
 pub enum IResult {
     Number(f64),
     String(std::string::String),
     Bool(bool),
+    None,
 }
-use crate::interpreter::IResult::{Bool, Number, String};
+
+impl Display for IResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number(n) => write!(f, "{}", n),
+            String(s) => write!(f, "{}", s),
+            Bool(b) => write!(f, "{}", b),
+            None => write!(f, ""),
+        }
+    }
+}
+
 impl Visitor<IResult> for Interpreter {
     fn visit_literal(&self, lit: &Literal) -> IResult {
         match &lit.value.ttype {
@@ -148,12 +166,37 @@ impl Visitor<IResult> for Interpreter {
             TokenType::Eof => todo!(),
         }
     }
+
+    fn visit_print_stmt(&self, stmt: &ast::PrintStmt) -> IResult {
+        println!("{}", self.visit_expression(&stmt.value));
+        return None;
+    }
 }
 
 impl Interpreter {
-    fn error(&self, ttype: &TokenType, errmsg: &str) -> ! {
+    pub fn interpret(&self, stmt: StmtRef) -> Result<IResult, std::string::String> {
+        let prev = panic::take_hook();
+        panic::set_hook(Box::new(move |info| {
+            if let Some(s) = info.payload().downcast_ref::<&str>() {
+                if s.starts_with(INTERPRETER_ERR_TAG) {
+                    eprintln!("interpreter error: {s:?}");
+                    return;
+                }
+            }
+            prev(info);
+        }));
+
+        let result = panic::catch_unwind(AssertUnwindSafe(|| self.visit_statement(stmt)));
+        return if let Ok(exp) = result {
+            Ok(exp)
+        } else {
+            Err("interpreter error".to_string())
+        };
+    }
+
+    fn error(&self, _ttype: &TokenType, errmsg: &str) -> ! {
         //diverging function
-        eprintln!("error for {:?}: {}", ttype, errmsg);
+        //eprintln!("error for {:?}: {}", ttype, errmsg);
         panic!("{}{}", INTERPRETER_ERR_TAG, errmsg);
     }
 }
