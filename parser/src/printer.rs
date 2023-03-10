@@ -1,7 +1,5 @@
-use crate::{
-    ast::{self, Binary, Grouping, Literal, Unary, Visitor},
-    tokens::TokenType,
-};
+use crate::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
+use scanner::tokens::TokenType;
 
 pub struct AstPrinter {}
 

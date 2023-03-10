@@ -1,20 +1,22 @@
+pub mod ast;
+pub mod printer;
+
 use std::{
     panic::{self, AssertUnwindSafe},
     rc::Rc,
 };
 
-use crate::{
-    ast::{
-        expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
-        Unary,
-    },
-    tokens::{Token, TokenType},
+use crate::ast::{
+    expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
+    Unary,
 };
+
+use scanner::tokens::{Token, TokenType};
 
 static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
 
 #[allow(dead_code)]
-pub(crate) struct Parser {
+pub struct Parser {
     pub tokens: Vec<Rc<Token>>,
     token_cursor: usize,
 }

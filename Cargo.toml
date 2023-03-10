@@ -5,6 +5,17 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-phf = { version = "0.10.1", features = ["macros"] }
+[workspace]
+members = [
+    "parser",
+    "interpreter",
+    "scanner",
+]
+
+[workspace.dependencies]
 as-any = "0.3.0"
+
+[dependencies]
+parser = { path = "./parser" }
+scanner = {path = "./scanner"}
+interpreter = {path = "./interpreter"}

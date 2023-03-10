@@ -1,10 +1,12 @@
-use crate::tokens::{get_reserved_keyword, Token, TokenType};
+pub mod tokens;
+
+use tokens::{get_reserved_keyword, Token, TokenType};
 
 use std::io::{prelude::*, ErrorKind, SeekFrom};
 use std::iter::Iterator;
 
 #[allow(dead_code)]
-pub(crate) struct Scanner<R>
+pub struct Scanner<R>
 where
     R: Read + Seek,
 {

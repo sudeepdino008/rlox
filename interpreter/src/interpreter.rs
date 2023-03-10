@@ -3,12 +3,10 @@ use std::{
     panic::{self, AssertUnwindSafe},
 };
 
-use crate::{
-    ast::{self, Binary, Grouping, Literal, StmtRef, Unary, Visitor},
-    tokens::TokenType,
-};
+use parser::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
+use scanner::tokens::TokenType;
 
-use crate::interpreter::IResult::{Bool, None, Number, String};
+use IResult::{Bool, None, Number, String};
 
 static INTERPRETER_ERR_TAG: &'static str = "INTERPRETER_ERROR:";
 pub struct Interpreter {}
@@ -174,7 +172,10 @@ impl Visitor<IResult> for Interpreter {
 }
 
 impl Interpreter {
-    pub fn interpret_stmts(&self, stmts: Vec<StmtRef>) -> Result<IResult, std::string::String> {
+    pub fn interpret_stmts(
+        &self,
+        stmts: Vec<ast::StmtRef>,
+    ) -> Result<IResult, std::string::String> {
         let mut result = IResult::None;
         for stmt in stmts {
             match self.interpret_stmt(stmt) {
@@ -184,7 +185,7 @@ impl Interpreter {
         }
         return Ok(result);
     }
-    pub fn interpret_stmt(&self, stmt: StmtRef) -> Result<IResult, std::string::String> {
+    pub fn interpret_stmt(&self, stmt: ast::StmtRef) -> Result<IResult, std::string::String> {
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
             if let Some(s) = info.payload().downcast_ref::<std::string::String>() {

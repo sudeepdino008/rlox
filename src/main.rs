@@ -1,10 +1,4 @@
-mod ast;
 mod errors;
-mod interpreter;
-mod parser;
-mod printer;
-mod scanner;
-mod tokens;
 
 use std::{
     cell::RefCell,
@@ -15,17 +9,17 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast::{expr_utils::*, Unary};
-use crate::printer::AstPrinter;
-use crate::printer::RpnPrinter;
-use crate::{ast::Binary, tokens::Token};
+use parser::ast::{expr_utils::*, Unary};
+use parser::ast::{Binary, StmtRef};
+use parser::printer::AstPrinter;
+use parser::printer::RpnPrinter;
+use scanner::tokens::Token;
 
-use crate::ast::Visitor;
-use crate::tokens::TokenType;
-use ast::StmtRef;
 use errors::error_handling::ErrorState;
 use interpreter::Interpreter;
+use parser::ast::Visitor;
 use parser::Parser;
+use scanner::tokens::TokenType;
 use scanner::Scanner;
 
 thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState { error_occured: false }));

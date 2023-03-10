@@ -1,7 +1,7 @@
 use as_any::AsAny;
 use std::rc::Rc;
 
-use crate::tokens::Token;
+use scanner::tokens::Token;
 
 pub enum ElementType {
     Literal,
@@ -139,7 +139,7 @@ impl ExprT for Binary {
 pub mod expr_utils {
     use std::rc::Rc;
 
-    use crate::tokens::{new_token, TokenType};
+    use scanner::tokens::{new_token, TokenType};
 
     use super::{ExprT, Expression, Grouping, Literal};
 
