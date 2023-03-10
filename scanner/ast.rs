@@ -1,9 +1,8 @@
 use as_any::AsAny;
 use std::rc::Rc;
 
-use scanner::tokens::TokenRef;
+use crate::tokens::Token;
 
-// expression
 pub enum ElementType {
     Literal,
     Grouping,
@@ -15,125 +14,21 @@ pub trait ExprT: AsAny {
     fn element_type(&self) -> ElementType;
 }
 
-pub type ExprRef = Rc<Expression>;
-
-// statements
 #[derive(PartialEq)]
 pub enum StmtType {
     Expression,
     Print,
 }
-pub trait StmtT: DeclT {
+pub trait StmtT: AsAny {
     fn stmt_type(&self) -> StmtType;
     fn is_print(&self) -> bool {
         self.stmt_type() == StmtType::Print
     }
 }
 
-impl<T> DeclT for T
-where
-    T: StmtT,
-{
-    fn decl_type(&self) -> DeclType {
-        DeclType::Stmt
-    }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
-        self
-    }
-}
-
-// impl<T> DeclT for T {
-//     fn as_decl_type(&self) -> &dyn DeclT {
-//         self
-//     }
-// }
-
 pub type StmtRef = Rc<dyn StmtT>;
 
-// declaration
-pub struct Declaration {
-    pub decl: DeclRef,
-}
-
-#[derive(PartialEq)]
-pub enum DeclType {
-    Var,
-    Stmt,
-}
-
-pub trait DeclT: AsAny {
-    fn decl_type(&self) -> DeclType;
-    fn is_var(&self) -> bool {
-        self.decl_type() == DeclType::Var
-    }
-    fn as_decl_type(&self) -> &dyn DeclT;
-}
-
-pub type DeclRef = Rc<dyn DeclT>;
-
-pub struct VarDecl {
-    pub identifier: TokenRef,
-    pub rhs: Option<ExprRef>,
-}
-
-impl VarDecl {
-    pub fn new(identifier: TokenRef) -> Self {
-        Self {
-            identifier,
-            rhs: None,
-        }
-    }
-
-    pub fn new_with_assign(identifier: TokenRef, assign: ExprRef) -> Self {
-        Self {
-            identifier,
-            rhs: Some(assign),
-        }
-    }
-}
-
-impl DeclT for VarDecl {
-    fn decl_type(&self) -> DeclType {
-        DeclType::Var
-    }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
-        self
-    }
-}
-
-pub struct StmtDecl {
-    pub stmt: StmtRef,
-}
-
-impl DeclT for StmtDecl {
-    fn decl_type(&self) -> DeclType {
-        DeclType::Stmt
-    }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
-        self
-    }
-}
-
-// visitor trait
 pub trait Visitor<Ret> {
-    fn visit_declaration(&self, decl: DeclRef) -> Ret {
-        if decl.is_var() {
-            self.visit_var_decl(decl.as_ref().as_any().downcast_ref::<VarDecl>().unwrap())
-        } else {
-            self.visit_statement(
-                decl.as_ref()
-                    .as_any()
-                    .downcast_ref::<StmtDecl>()
-                    .unwrap()
-                    .stmt
-                    .clone(),
-            )
-        }
-    }
-    fn visit_var_decl(&self, decl: &VarDecl) -> Ret;
     fn visit_statement(&self, stmt: StmtRef) -> Ret {
         if stmt.is_print() {
             self.visit_print_stmt(stmt.as_ref().as_any().downcast_ref::<PrintStmt>().unwrap())
@@ -171,7 +66,7 @@ pub trait Visitor<Ret> {
 }
 
 pub struct ExprStmt {
-    pub value: ExprRef,
+    pub value: Rc<Expression>,
 }
 impl StmtT for ExprStmt {
     fn stmt_type(&self) -> StmtType {
@@ -180,7 +75,7 @@ impl StmtT for ExprStmt {
 }
 
 pub struct PrintStmt {
-    pub value: ExprRef,
+    pub value: Rc<Expression>,
 }
 impl StmtT for PrintStmt {
     fn stmt_type(&self) -> StmtType {
@@ -244,7 +139,7 @@ impl ExprT for Binary {
 pub mod expr_utils {
     use std::rc::Rc;
 
-    use scanner::tokens::{new_token, TokenType};
+    use crate::tokens::{new_token, TokenType};
 
     use super::{ExprT, Expression, Grouping, Literal};
 

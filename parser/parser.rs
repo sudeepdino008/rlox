@@ -1,27 +1,42 @@
-pub mod ast;
-pub mod printer;
-
 use std::{
     panic::{self, AssertUnwindSafe},
     rc::Rc,
 };
 
-use crate::ast::{
-    expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
-    Unary,
+use crate::{
+    ast::{
+        expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
+        Unary,
+    },
+    tokens::{Token, TokenType},
 };
-
-use as_any::Downcast;
-use ast::{DeclRef, DeclT, VarDecl};
-use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
 
 #[allow(dead_code)]
-pub struct Parser {
+pub(crate) struct Parser {
     pub tokens: Vec<TokenRef>,
     token_cursor: usize,
 }
+
+/*
+expression     → equality ;
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term           → factor ( ( "-" | "+" ) factor )* ;
+factor         → unary ( ( "/" | "*" ) unary )* ;
+unary          → ( "!" | "-" ) unary
+               | primary ;
+primary        → NUMBER | STRING | "true" | "false" | "nil"
+               | "(" expression ")" ;
+
+
+program -> statement* EOF ;
+statement -> exprStmt | printStmt ;
+exprStmt -> expression ";" ;
+printStmt -> "print" expression ";" ;
+
+*/
 
 #[allow(dead_code)]
 impl Parser {
@@ -57,22 +72,7 @@ impl Parser {
         }
     }
 
-    fn declaration(&mut self) -> DeclRef {
-        if self.match_t(&[TokenType::Var]) {
-            Rc::new(self.var_declaration())
-        } else {
-            let v = self.statement();
-            let a = v.as_ref().as_decl_type();
-
-            Rc::new(a)
-        }
-    }
-
-    fn var_declaration(&mut self) -> VarDecl {
-        todo!()
-    }
-
-    fn statement(&mut self) -> StmtRef {
+    pub fn statement(&mut self) -> StmtRef {
         if self.match_t(&[TokenType::Print]) {
             Rc::new(self.print_stmt())
         } else {
@@ -80,7 +80,7 @@ impl Parser {
         }
     }
 
-    fn print_stmt(&mut self) -> PrintStmt {
+    pub fn print_stmt(&mut self) -> PrintStmt {
         let value = self.expression();
         self.consume(&TokenType::Semicolon, "semicolon missing");
         PrintStmt {
@@ -88,7 +88,7 @@ impl Parser {
         }
     }
 
-    fn expr_stmt(&mut self) -> ExprStmt {
+    pub fn expr_stmt(&mut self) -> ExprStmt {
         let value = self.expression();
         self.consume(&TokenType::Semicolon, "semicolon missing");
         ExprStmt {
@@ -96,18 +96,18 @@ impl Parser {
         }
     }
 
-    fn expression(&mut self) -> Expression {
+    pub fn expression(&mut self) -> Expression {
         return self.equality();
     }
 
-    fn equality(&mut self) -> Expression {
+    pub fn equality(&mut self) -> Expression {
         self.binary_break(
             |p: &mut Parser| p.comparison(),
             &[TokenType::EqualEqual, TokenType::BangEqual],
         )
     }
 
-    fn comparison(&mut self) -> Expression {
+    pub fn comparison(&mut self) -> Expression {
         self.binary_break(
             |p: &mut Parser| p.term(),
             &[
@@ -119,21 +119,21 @@ impl Parser {
         )
     }
 
-    fn term(&mut self) -> Expression {
+    pub fn term(&mut self) -> Expression {
         self.binary_break(
             |p: &mut Parser| p.factor(),
             &[TokenType::Minus, TokenType::Plus],
         )
     }
 
-    fn factor(&mut self) -> Expression {
+    pub fn factor(&mut self) -> Expression {
         self.binary_break(
             |p: &mut Parser| p.unary(),
             &[TokenType::Slash, TokenType::Star],
         )
     }
 
-    fn unary(&mut self) -> Expression {
+    pub fn unary(&mut self) -> Expression {
         if self.match_t(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
             let expr = self.unary();
@@ -143,7 +143,7 @@ impl Parser {
         }
     }
 
-    fn primary(&mut self) -> Expression {
+    pub fn primary(&mut self) -> Expression {
         if self.match_t(&[TokenType::LeftBrace]) {
             let expr = self.expression();
             self.consume(&TokenType::RightBrace, "right brace missing");

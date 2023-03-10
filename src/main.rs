@@ -103,7 +103,7 @@ fn run_line(contents: &str) {
     }
 }
 
-fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<Vec<StmtRef>> {
+fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<StmtRef>> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(result) => {
@@ -140,19 +140,6 @@ fn set_error(is_error: bool) {
 
 #[allow(dead_code)]
 fn try_ast_printer() {
-    //     expression     → literal
-    //                | unary
-    //                | binary
-    //                | grouping ;
-
-    // literal        → NUMBER | STRING | "true" | "false" | "nil" ;
-    // grouping       → "(" expression ")" ;
-    // unary          → ( "-" | "!" ) expression ;
-    // binary         → expression operator expression ;
-    // operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
-    //                | "+"  | "-"  | "*" | "/" ;
-    // 4*(2 + 3)
-
     let e1 = get_num_literal(2.0);
     let e2 = get_num_literal(3.0);
     let b1 = wrap_expr(Binary {

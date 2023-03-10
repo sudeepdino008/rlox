@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use phf::phf_map;
 
 #[allow(dead_code)]
@@ -58,6 +60,8 @@ pub struct Token {
     pub lexeme: String,
     pub line_num: u32,
 }
+
+pub type TokenRef = Rc<Token>;
 
 static RESERVED_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "and" => TokenType::And,

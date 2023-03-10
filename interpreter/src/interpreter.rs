@@ -169,6 +169,10 @@ impl Visitor<IResult> for Interpreter {
         println!("{}", self.visit_expression(&stmt.value));
         return None;
     }
+
+    fn visit_var_decl(&self, decl: &ast::VarDecl) -> IResult {
+        todo!()
+    }
 }
 
 impl Interpreter {
