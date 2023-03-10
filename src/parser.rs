@@ -47,7 +47,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<StmtRef, String> {
+    pub fn parse(&mut self) -> Result<Vec<StmtRef>, String> {
         // special handling based on parser error tag
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
@@ -60,9 +60,15 @@ impl Parser {
             prev(info);
         }));
 
-        match panic::catch_unwind(AssertUnwindSafe(|| self.statement())) {
-            Ok(stmt) => Ok(stmt),
-            Err(_) => Err("parser error".to_string()),
+        match panic::catch_unwind(AssertUnwindSafe(|| {
+            let mut stmts = Vec::new();
+            while !self.is_end() {
+                stmts.push(self.statement());
+            }
+            return stmts;
+        })) {
+            Ok(stmts) => Ok(stmts),
+            Err(_) => Err("".to_string()),
         }
     }
 
@@ -204,7 +210,7 @@ impl Parser {
     }
 
     fn is_end(&self) -> bool {
-        self.token_cursor >= self.tokens.len()
+        self.token_cursor >= self.tokens.len() - 1
     }
 
     fn previous(&self) -> Rc<Token> {

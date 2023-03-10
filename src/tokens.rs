@@ -60,22 +60,22 @@ pub struct Token {
 }
 
 static RESERVED_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
-    "And" => TokenType::And,
-    "Class" => TokenType::Class,
-    "Else" => TokenType::Else,
-    "False" => TokenType::False,
-    "Fun" => TokenType::Fun,
-    "For" => TokenType::For,
-    "If" => TokenType::If,
-    "Nil" => TokenType::Nil,
-    "Or" => TokenType::Or,
-    "Print" => TokenType::Print,
-    "Return" => TokenType::Return,
-    "Super" => TokenType::Super,
-    "This" => TokenType::This,
-    "True" => TokenType::True,
-    "Var" => TokenType::Var,
-    "While" => TokenType::While,
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "false" => TokenType::False,
+    "fun" => TokenType::Fun,
+    "for" => TokenType::For,
+    "if" => TokenType::If,
+    "nil" => TokenType::Nil,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "true" => TokenType::True,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
 };
 
 pub fn get_reserved_keyword(keyword: &str) -> Option<TokenType> {

@@ -98,25 +98,26 @@ fn run_line(contents: &str) {
         tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
     match parse_tokens(tokens) {
-        Some(expr) => {
-            let result = Interpreter {}.interpret(expr);
+        Some(stmts) => {
+            let result = Interpreter {}.interpret_stmts(stmts);
             match result {
                 Ok(result) => println!("{}", result),
-                Err(msg) => eprintln!("error: {}", msg),
+                Err(msg) => eprintln!("{}", msg),
             };
         }
         None => {}
     }
 }
 
-fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<StmtRef> {
+fn parse_tokens(tokens: Vec<Rc<Token>>) -> Option<Vec<StmtRef>> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(result) => {
-            println!(
-                "parsed expression: {}\n",
-                AstPrinter {}.visit_statement(Rc::clone(&result))
-            );
+            println!("parsed expression: \n");
+            let astp = AstPrinter {};
+            for stmt in &result {
+                println!("{}\n", astp.visit_statement(stmt.clone()));
+            }
             return Some(result);
         }
         Err(_) => {

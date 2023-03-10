@@ -39,7 +39,9 @@ impl Visitor<String> for AstPrinter {
     fn visit_print_stmt(&self, stmt: &ast::PrintStmt) -> String {
         let mut exprs = Vec::new();
         exprs.push("print".to_string());
+        exprs.push("\"".to_string());
         exprs.push(self.visit_expression(&stmt.value));
+        exprs.push("\"".to_string());
         self.parenthesize(exprs)
     }
 }

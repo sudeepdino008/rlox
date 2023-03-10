@@ -174,12 +174,22 @@ impl Visitor<IResult> for Interpreter {
 }
 
 impl Interpreter {
-    pub fn interpret(&self, stmt: StmtRef) -> Result<IResult, std::string::String> {
+    pub fn interpret_stmts(&self, stmts: Vec<StmtRef>) -> Result<IResult, std::string::String> {
+        let mut result = IResult::None;
+        for stmt in stmts {
+            match self.interpret_stmt(stmt) {
+                Ok(val) => result = val,
+                Err(err) => return Err(err),
+            }
+        }
+        return Ok(result);
+    }
+    pub fn interpret_stmt(&self, stmt: StmtRef) -> Result<IResult, std::string::String> {
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
-            if let Some(s) = info.payload().downcast_ref::<&str>() {
+            if let Some(s) = info.payload().downcast_ref::<std::string::String>() {
                 if s.starts_with(INTERPRETER_ERR_TAG) {
-                    eprintln!("interpreter error: {s:?}");
+                    eprintln!("{s:?}");
                     return;
                 }
             }
@@ -190,7 +200,7 @@ impl Interpreter {
         return if let Ok(exp) = result {
             Ok(exp)
         } else {
-            Err("interpreter error".to_string())
+            Err("".to_string())
         };
     }
 
