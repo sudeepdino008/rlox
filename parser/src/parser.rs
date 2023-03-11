@@ -7,12 +7,10 @@ use std::{
 };
 
 use crate::ast::{
-    expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, StmtRef,
-    Unary,
+    expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, Unary,
 };
 
-use as_any::Downcast;
-use ast::{DeclRef, DeclT, VarDecl};
+use ast::{DeclRef, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
@@ -32,7 +30,7 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<StmtRef>, String> {
+    pub fn parse(&mut self) -> Result<Vec<DeclRef>, String> {
         // special handling based on parser error tag
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
@@ -48,7 +46,7 @@ impl Parser {
         match panic::catch_unwind(AssertUnwindSafe(|| {
             let mut stmts = Vec::new();
             while !self.is_end() {
-                stmts.push(self.statement());
+                stmts.push(self.declaration());
             }
             return stmts;
         })) {
@@ -61,10 +59,7 @@ impl Parser {
         if self.match_t(&[TokenType::Var]) {
             Rc::new(self.var_declaration())
         } else {
-            let v = self.statement();
-            let a = v.as_ref().as_decl_type();
-
-            Rc::new(a)
+            Rc::new(self.statement()) //.as_decl_type()
         }
     }
 
@@ -72,11 +67,13 @@ impl Parser {
         todo!()
     }
 
-    fn statement(&mut self) -> StmtRef {
-        if self.match_t(&[TokenType::Print]) {
-            Rc::new(self.print_stmt())
-        } else {
-            Rc::new(self.expr_stmt())
+    fn statement(&mut self) -> StmtDecl {
+        StmtDecl {
+            stmt: if self.match_t(&[TokenType::Print]) {
+                Rc::new(self.print_stmt())
+            } else {
+                Rc::new(self.expr_stmt())
+            },
         }
     }
 

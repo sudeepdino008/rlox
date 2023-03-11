@@ -178,18 +178,18 @@ impl Visitor<IResult> for Interpreter {
 impl Interpreter {
     pub fn interpret_stmts(
         &self,
-        stmts: Vec<ast::StmtRef>,
+        decls: Vec<ast::DeclRef>,
     ) -> Result<IResult, std::string::String> {
         let mut result = IResult::None;
-        for stmt in stmts {
-            match self.interpret_stmt(stmt) {
+        for decl in decls {
+            match self.interpret_stmt(&decl.into()) {
                 Ok(val) => result = val,
                 Err(err) => return Err(err),
             }
         }
         return Ok(result);
     }
-    pub fn interpret_stmt(&self, stmt: ast::StmtRef) -> Result<IResult, std::string::String> {
+    pub fn interpret_stmt(&self, stmt: &ast::StmtDecl) -> Result<IResult, std::string::String> {
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
             if let Some(s) = info.payload().downcast_ref::<std::string::String>() {

@@ -9,11 +9,10 @@ use std::{
     rc::Rc,
 };
 
-use parser::ast::{expr_utils::*, Unary};
-use parser::ast::{Binary, StmtRef};
+use parser::ast::Binary;
+use parser::ast::{expr_utils::*, DeclRef, Unary};
 use parser::printer::AstPrinter;
-use parser::printer::RpnPrinter;
-use scanner::tokens::Token;
+use scanner::tokens::{Token, TokenRef};
 
 use errors::error_handling::ErrorState;
 use interpreter::Interpreter;
@@ -103,14 +102,14 @@ fn run_line(contents: &str) {
     }
 }
 
-fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<StmtRef>> {
+fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<DeclRef>> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(result) => {
             println!("parsed expression: \n");
             let astp = AstPrinter {};
             for stmt in &result {
-                println!("{}\n", astp.visit_statement(stmt.clone()));
+                println!("{}\n", astp.visit_declaration(stmt.clone()));
             }
             return Some(result);
         }
@@ -166,7 +165,7 @@ fn try_ast_printer() {
     });
 
     println!("ast: {}", AstPrinter {}.visit_expression(&b2));
-    println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
+    //println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
 
     // let's try another
     let e1 = get_num_literal(45.67);
@@ -192,5 +191,5 @@ fn try_ast_printer() {
         right: e3,
     });
     println!("ast: {}", AstPrinter {}.visit_expression(&b2));
-    println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
+    //println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
 }

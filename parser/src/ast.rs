@@ -30,27 +30,6 @@ pub trait StmtT: DeclT {
     }
 }
 
-impl<T> DeclT for T
-where
-    T: StmtT,
-{
-    fn decl_type(&self) -> DeclType {
-        DeclType::Stmt
-    }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
-        self
-    }
-}
-
-// impl<T> DeclT for T {
-//     fn as_decl_type(&self) -> &dyn DeclT {
-//         self
-//     }
-// }
-
-pub type StmtRef = Rc<dyn StmtT>;
-
 // declaration
 pub struct Declaration {
     pub decl: DeclRef,
@@ -67,7 +46,20 @@ pub trait DeclT: AsAny {
     fn is_var(&self) -> bool {
         self.decl_type() == DeclType::Var
     }
-    fn as_decl_type(&self) -> &dyn DeclT;
+    fn as_decl_type(self: Rc<Self>) -> Rc<dyn DeclT>;
+}
+
+impl<T> DeclT for T
+where
+    T: StmtT,
+{
+    fn decl_type(&self) -> DeclType {
+        DeclType::Stmt
+    }
+
+    fn as_decl_type(self: Rc<Self>) -> Rc<dyn DeclT> {
+        self
+    }
 }
 
 pub type DeclRef = Rc<dyn DeclT>;
@@ -97,23 +89,49 @@ impl DeclT for VarDecl {
     fn decl_type(&self) -> DeclType {
         DeclType::Var
     }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
+    fn as_decl_type(self: Rc<Self>) -> Rc<dyn DeclT> {
         self
     }
 }
 
 pub struct StmtDecl {
-    pub stmt: StmtRef,
+    // unfortunately, we can't use StmtRef directly
+    // here because trait object can't be "upcasted" into each other easily
+    pub stmt: Rc<dyn StmtT>,
 }
 
 impl DeclT for StmtDecl {
     fn decl_type(&self) -> DeclType {
         DeclType::Stmt
     }
-
-    fn as_decl_type(&self) -> &dyn DeclT {
+    fn as_decl_type(self: Rc<Self>) -> Rc<dyn DeclT> {
         self
+    }
+}
+
+impl From<Rc<dyn DeclT>> for StmtDecl {
+    fn from(decl: Rc<dyn DeclT>) -> StmtDecl {
+        StmtDecl {
+            stmt: decl
+                .as_any()
+                .downcast_ref::<StmtDecl>()
+                .unwrap()
+                .stmt
+                .clone(),
+        }
+    }
+}
+
+impl StmtDecl {
+    pub fn declt_to_stmtt(declt: Rc<dyn DeclT>) -> StmtDecl {
+        StmtDecl {
+            stmt: declt
+                .as_any()
+                .downcast_ref::<StmtDecl>()
+                .unwrap()
+                .stmt
+                .clone(),
+        }
     }
 }
 
@@ -123,22 +141,27 @@ pub trait Visitor<Ret> {
         if decl.is_var() {
             self.visit_var_decl(decl.as_ref().as_any().downcast_ref::<VarDecl>().unwrap())
         } else {
-            self.visit_statement(
-                decl.as_ref()
-                    .as_any()
-                    .downcast_ref::<StmtDecl>()
-                    .unwrap()
-                    .stmt
-                    .clone(),
-            )
+            self.visit_statement(decl.as_ref().as_any().downcast_ref::<StmtDecl>().unwrap())
         }
     }
     fn visit_var_decl(&self, decl: &VarDecl) -> Ret;
-    fn visit_statement(&self, stmt: StmtRef) -> Ret {
-        if stmt.is_print() {
-            self.visit_print_stmt(stmt.as_ref().as_any().downcast_ref::<PrintStmt>().unwrap())
+    fn visit_statement(&self, stmt: &StmtDecl) -> Ret {
+        if stmt.stmt.is_print() {
+            self.visit_print_stmt(
+                stmt.stmt
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref::<PrintStmt>()
+                    .unwrap(),
+            )
         } else {
-            self.visit_expression_stmt(stmt.as_ref().as_any().downcast_ref::<ExprStmt>().unwrap())
+            self.visit_expression_stmt(
+                stmt.stmt
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref::<ExprStmt>()
+                    .unwrap(),
+            )
         }
     }
     fn visit_print_stmt(&self, stmt: &PrintStmt) -> Ret;
