@@ -1,50 +1,60 @@
-use std::{
-    fmt::Display,
-    panic::{self, AssertUnwindSafe},
-};
+mod environment;
+mod result;
 
+use std::panic::{self, AssertUnwindSafe};
+use std::rc::Rc;
+
+use environment::Environment;
 use parser::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
 use scanner::tokens::TokenType;
 
-use IResult::{Bool, None, Number, String};
+use result::IResult;
+use result::IResult::{Bool, None, Number, String};
 
 static INTERPRETER_ERR_TAG: &'static str = "INTERPRETER_ERROR:";
-pub struct Interpreter {}
-
-pub enum IResult {
-    Number(f64),
-    String(std::string::String),
-    Bool(bool),
-    None,
+pub struct Interpreter {
+    environment: Environment,
 }
 
-impl Display for IResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Number(n) => write!(f, "{}", n),
-            String(s) => write!(f, "{}", s),
-            Bool(b) => write!(f, "{}", b),
-            None => write!(f, ""),
+impl Interpreter {
+    pub fn new() -> Interpreter {
+        Interpreter {
+            environment: Environment::new(),
         }
     }
 }
 
 impl Visitor<IResult> for Interpreter {
-    fn visit_literal(&self, lit: &Literal) -> IResult {
+    fn visit_literal(&mut self, lit: &Literal) -> IResult {
         match &lit.value.ttype {
-            TokenType::String(contents) => String(contents.to_string()),
+            TokenType::String(contents) => String(Rc::new(contents.to_string())),
             TokenType::Number(value) => Number(*value),
             TokenType::True => Bool(true),
             TokenType::False => Bool(false),
+            TokenType::Identifier => {
+                let var = &lit.value.lexeme;
+                if let Some(value) = self.environment.get::<IResult>(var) {
+                    if IResult::None.eq(value) {
+                        self.error(&lit.value.ttype, "variable is not initialized");
+                    }
+
+                    value.clone()
+                } else {
+                    self.error(
+                        &lit.value.ttype,
+                        format!("variable {} not found", var.as_str()).as_str(),
+                    )
+                }
+            }
             tkn => self.error(&tkn, "invalid token found; expected literal"),
         }
     }
 
-    fn visit_grouping(&self, grp: &Grouping) -> IResult {
+    fn visit_grouping(&mut self, grp: &Grouping) -> IResult {
         self.visit_expression(&grp.expr)
     }
 
-    fn visit_unary(&self, unr: &Unary) -> IResult {
+    fn visit_unary(&mut self, unr: &Unary) -> IResult {
         match &unr.operator.ttype {
             TokenType::Minus | TokenType::Plus => {
                 let minus = if unr.operator.ttype == TokenType::Minus {
@@ -72,7 +82,7 @@ impl Visitor<IResult> for Interpreter {
         }
     }
 
-    fn visit_binary(&self, bin: &Binary) -> IResult {
+    fn visit_binary(&mut self, bin: &Binary) -> IResult {
         let leftv = self.visit_expression(&bin.left);
         let rightv = self.visit_expression(&bin.right);
         match &bin.operator.ttype {
@@ -84,7 +94,7 @@ impl Visitor<IResult> for Interpreter {
                 }
                 if let String(left) = leftv {
                     if let String(right) = rightv {
-                        return String(format!("{}{}", left, right));
+                        return String(Rc::new(format!("{}{}", left, right)));
                     }
                 }
                 self.error(&bin.operator.ttype, "invalid operands for plus operator");
@@ -165,31 +175,38 @@ impl Visitor<IResult> for Interpreter {
         }
     }
 
-    fn visit_print_stmt(&self, stmt: &ast::PrintStmt) -> IResult {
+    fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> IResult {
         println!("{}", self.visit_expression(&stmt.value));
         return None;
     }
 
-    fn visit_var_decl(&self, decl: &ast::VarDecl) -> IResult {
-        todo!()
+    fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
+        if decl.rhs.is_none() {
+            println!("inserting {}", decl.identifier.lexeme);
+            self.environment.insert(&decl.identifier.lexeme);
+        } else {
+            println!("inserting2 {}", decl.identifier.lexeme);
+            let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
+            self.environment
+                .insert_bind(&decl.identifier.lexeme, rhs_result);
+        }
+
+        None
     }
 }
 
 impl Interpreter {
-    pub fn interpret_stmts(
-        &self,
-        decls: Vec<ast::DeclRef>,
-    ) -> Result<IResult, std::string::String> {
+    pub fn interpret(&mut self, decls: Vec<ast::DeclRef>) -> Result<IResult, std::string::String> {
         let mut result = IResult::None;
         for decl in decls {
-            match self.interpret_stmt(&decl.into()) {
+            match self.interpret_decl(decl) {
                 Ok(val) => result = val,
                 Err(err) => return Err(err),
             }
         }
         return Ok(result);
     }
-    pub fn interpret_stmt(&self, stmt: &ast::StmtDecl) -> Result<IResult, std::string::String> {
+    fn interpret_decl(&mut self, decl: ast::DeclRef) -> Result<IResult, std::string::String> {
         let prev = panic::take_hook();
         panic::set_hook(Box::new(move |info| {
             if let Some(s) = info.payload().downcast_ref::<std::string::String>() {
@@ -201,7 +218,7 @@ impl Interpreter {
             prev(info);
         }));
 
-        let result = panic::catch_unwind(AssertUnwindSafe(|| self.visit_statement(stmt)));
+        let result = panic::catch_unwind(AssertUnwindSafe(|| self.visit_declaration(decl)));
         return if let Ok(exp) = result {
             Ok(exp)
         } else {

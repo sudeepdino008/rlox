@@ -25,8 +25,6 @@ thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState
 
 fn main() {
     //try_ast_printer();
-
-    println!("Hello, world!");
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {
@@ -42,6 +40,7 @@ fn main() {
 
 #[allow(dead_code)]
 fn run_prompt() {
+    let mut interpreter = Interpreter::new();
     loop {
         // simply moving this line outside the loop will append to this "line" variable and not just store the current input
         let mut line = String::new();
@@ -57,7 +56,7 @@ fn run_prompt() {
         if line.trim().len() == 0 {
             continue;
         }
-        run_line(&line);
+        run_line(&mut interpreter, &line);
         set_error(false);
     }
 }
@@ -79,7 +78,7 @@ fn run_file(filename: &str) {
     //exit_if_error();
 }
 
-fn run_line(contents: &str) {
+fn run_line(interpreter: &mut Interpreter, contents: &str) {
     let cursor = Cursor::new(contents.as_bytes());
     let scanner = Scanner::build_scanner(BufReader::new(cursor));
     let mut tokens = Vec::new();
@@ -91,8 +90,8 @@ fn run_line(contents: &str) {
         tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
     match parse_tokens(tokens) {
-        Some(stmts) => {
-            let result = Interpreter {}.interpret_stmts(stmts);
+        Some(decls) => {
+            let result = interpreter.interpret(decls);
             match result {
                 Ok(result) => println!("{}", result),
                 Err(msg) => eprintln!("{}", msg),
@@ -107,7 +106,7 @@ fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<DeclRef>> {
     match parser.parse() {
         Ok(result) => {
             println!("parsed expression: \n");
-            let astp = AstPrinter {};
+            let mut astp = AstPrinter {};
             for stmt in &result {
                 println!("{}\n", astp.visit_declaration(stmt.clone()));
             }

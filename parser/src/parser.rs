@@ -64,7 +64,17 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> VarDecl {
-        todo!()
+        if self.match_t(&[TokenType::Identifier]) {
+            let identifier = self.previous();
+            let mut rhs = None;
+            if self.match_t(&[TokenType::Equal]) {
+                let initializer = self.expression();
+                rhs = Some(Rc::new(initializer))
+            }
+            self.consume(&TokenType::Semicolon, "semicolon missing");
+            return VarDecl { identifier, rhs };
+        }
+        self.error("expected identifier after 'var'")
     }
 
     fn statement(&mut self) -> StmtDecl {
@@ -153,12 +163,12 @@ impl Parser {
             TokenType::Nil,
             TokenType::String("".to_string()),
             TokenType::Number(0.0),
+            TokenType::Identifier,
         ]) {
             let expr = self.previous();
             wrap_expr(Literal { value: expr })
         } else {
-            let token = self.previous();
-            self.error(&token.ttype, "literal expected");
+            self.error("literal expected");
         }
     }
 
@@ -219,10 +229,10 @@ impl Parser {
             return self.advance();
         }
 
-        self.error(&ttype, errmsg);
+        self.error(errmsg);
     }
 
-    fn error(&mut self, _ttype: &TokenType, errmsg: &str) -> ! {
+    fn error(&mut self, errmsg: &str) -> ! {
         //diverging function
         //eprintln!("error for {:?}: {}", ttype, errmsg);
         panic!("{}{}", PARSER_ERR_TAG, errmsg);

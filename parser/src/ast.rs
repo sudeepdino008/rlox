@@ -122,30 +122,17 @@ impl From<Rc<dyn DeclT>> for StmtDecl {
     }
 }
 
-impl StmtDecl {
-    pub fn declt_to_stmtt(declt: Rc<dyn DeclT>) -> StmtDecl {
-        StmtDecl {
-            stmt: declt
-                .as_any()
-                .downcast_ref::<StmtDecl>()
-                .unwrap()
-                .stmt
-                .clone(),
-        }
-    }
-}
-
 // visitor trait
 pub trait Visitor<Ret> {
-    fn visit_declaration(&self, decl: DeclRef) -> Ret {
+    fn visit_declaration(&mut self, decl: DeclRef) -> Ret {
         if decl.is_var() {
             self.visit_var_decl(decl.as_ref().as_any().downcast_ref::<VarDecl>().unwrap())
         } else {
             self.visit_statement(decl.as_ref().as_any().downcast_ref::<StmtDecl>().unwrap())
         }
     }
-    fn visit_var_decl(&self, decl: &VarDecl) -> Ret;
-    fn visit_statement(&self, stmt: &StmtDecl) -> Ret {
+    fn visit_var_decl(&mut self, decl: &VarDecl) -> Ret;
+    fn visit_statement(&mut self, stmt: &StmtDecl) -> Ret {
         if stmt.stmt.is_print() {
             self.visit_print_stmt(
                 stmt.stmt
@@ -164,12 +151,12 @@ pub trait Visitor<Ret> {
             )
         }
     }
-    fn visit_print_stmt(&self, stmt: &PrintStmt) -> Ret;
-    fn visit_expression_stmt(&self, stmt: &ExprStmt) -> Ret {
+    fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Ret;
+    fn visit_expression_stmt(&mut self, stmt: &ExprStmt) -> Ret {
         self.visit_expression(&stmt.value)
     }
 
-    fn visit_expression(&self, expr: &Expression) -> Ret {
+    fn visit_expression(&mut self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();
         return match expr.value.as_ref().element_type() {
             ElementType::Literal => {
@@ -187,10 +174,10 @@ pub trait Visitor<Ret> {
         };
     }
 
-    fn visit_literal(&self, lit: &Literal) -> Ret;
-    fn visit_grouping(&self, grp: &Grouping) -> Ret;
-    fn visit_unary(&self, unr: &Unary) -> Ret;
-    fn visit_binary(&self, bin: &Binary) -> Ret;
+    fn visit_literal(&mut self, lit: &Literal) -> Ret;
+    fn visit_grouping(&mut self, grp: &Grouping) -> Ret;
+    fn visit_unary(&mut self, unr: &Unary) -> Ret;
+    fn visit_binary(&mut self, bin: &Binary) -> Ret;
 }
 
 pub struct ExprStmt {
