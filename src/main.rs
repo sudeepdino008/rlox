@@ -1,4 +1,5 @@
 mod errors;
+mod tests;
 
 use std::{
     cell::RefCell,
@@ -110,56 +111,4 @@ fn set_error(is_error: bool) {
     ERROR_STATE.with(|val| {
         val.borrow_mut().error_occured = is_error;
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    fn data1() {
-        let input_file = "data/1/vars.rl";
-        let exp_file = "data/1/expected";
-        let expected_out = fs::read_to_string(exp_file).unwrap();
-
-        let scanner = Scanner::build_scanner(BufReader::new(File::open(input_file).unwrap()));
-        let cursor = Rc::new(RefCell::new(Cursor::new(Vec::new())));
-
-        // writeln!(boxed, "hello world").unwrap();
-        // boxed
-        //     .as_mut()
-        //     .seek(std::io::SeekFrom::Start(0))
-        //     .expect("expected to seek just fine");
-
-        // let mut out2 = String::new();
-        // let res = boxed.as_mut().read_to_string(&mut out2);
-        // println!("res: {:?}", res);
-        // println!("out2: {}", out2);
-
-        let mut interpreter = Interpreter::new_with_out(cursor.clone());
-        execute(&mut interpreter, scanner);
-
-        //println!("prevp: {:?}", boxed.as_mut().stream_position());
-
-        cursor
-            .borrow_mut()
-            .seek(std::io::SeekFrom::Start(0))
-            .expect("expected to seek just fine");
-
-        let mut out = String::new();
-        cursor
-            .borrow_mut()
-            .read_to_string(&mut out)
-            .expect("read didn't go as expected");
-
-        assert_eq!(out, expected_out);
-    }
 }

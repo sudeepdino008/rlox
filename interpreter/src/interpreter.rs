@@ -29,12 +29,12 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
             TokenType::False => Bool(false),
             TokenType::Identifier => {
                 let var = &lit.value.lexeme;
-                if let Some(value) = self.environment.get::<IResult>(var) {
-                    if IResult::None.eq(value) {
+                if let Some(value) = self.environment.get(var) {
+                    if IResult::None.eq(value.as_ref()) {
                         self.error(&lit.value.ttype, "variable is not initialized");
                     }
 
-                    value.clone()
+                    value.as_ref().clone()
                 } else {
                     self.error(
                         &lit.value.ttype,
@@ -175,7 +175,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         let identifier = assign.identifier.lexeme.as_str();
         if self.environment.is_binded(identifier) {
             let rhs = self.visit_expression(&assign.value);
-            self.environment.insert_bind(identifier, rhs);
+            self.environment.assign(identifier, rhs);
             None
         } else {
             self.error(
@@ -201,11 +201,11 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
 
     fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
         if decl.rhs.is_none() {
-            self.environment.insert(&decl.identifier.lexeme);
+            self.environment.declare(&decl.identifier.lexeme);
         } else {
             let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
             self.environment
-                .insert_bind(&decl.identifier.lexeme, rhs_result);
+                .declare_and_init(&decl.identifier.lexeme, rhs_result);
         }
 
         None
