@@ -9,10 +9,9 @@ use std::{
     rc::Rc,
 };
 
+use parser::ast::DeclRef;
 
-use parser::ast::{DeclRef};
-
-use scanner::tokens::{TokenRef};
+use scanner::tokens::TokenRef;
 
 use errors::error_handling::ErrorState;
 use interpreter::Interpreter;
@@ -40,19 +39,17 @@ fn main() {
 
 #[allow(dead_code)]
 fn run_prompt() {
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::default();
     loop {
         // simply moving this line outside the loop will append to this "line" variable and not just store the current input
         let mut line = String::new();
         print!("\nrlox> ");
         io::stdout().flush().unwrap();
-        match io::stdin().lock().read_line(&mut line) {
-            Err(why) => {
-                eprintln!("{:?}", why);
-                continue;
-            }
-            Ok(_) => {}
+        if let Err(why) = io::stdin().lock().read_line(&mut line) {
+            eprintln!("{:?}", why);
+            continue;
         }
+
         if line.trim().is_empty() {
             continue;
         }
@@ -63,7 +60,7 @@ fn run_prompt() {
 
 #[allow(dead_code)]
 fn run_file(filename: &str) {
-    let mut interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::default();
     let scanner = Scanner::build_scanner(BufReader::new(File::open(filename).unwrap()));
     execute(&mut interpreter, scanner);
 }
@@ -72,25 +69,6 @@ fn run_line(interpreter: &mut Interpreter<Stdout>, contents: &str) {
     let cursor = Cursor::new(contents.as_bytes());
     let scanner = Scanner::build_scanner(BufReader::new(cursor));
     execute(interpreter, scanner);
-
-    // let mut tokens = Vec::new();
-    // for lexeme in scanner {
-    //     if lexeme.is_err() {
-    //         eprintln!("error in inpur");
-    //         return;
-    //     }
-    //     tokens.push(Rc::new(lexeme.ok().unwrap()));
-    // }
-    // match parse_tokens(tokens) {
-    //     Some(decls) => {
-    //         let result = interpreter.interpret(decls);
-    //         match result {
-    //             Ok(result) => println!("{}", result),
-    //             Err(msg) => eprintln!("{}", msg),
-    //         };
-    //     }
-    //     None => {}
-    // }
 }
 
 fn execute<T: Read + Seek, I: Write>(interpreter: &mut Interpreter<I>, scanner: Scanner<T>) {
@@ -102,33 +80,20 @@ fn execute<T: Read + Seek, I: Write>(interpreter: &mut Interpreter<I>, scanner: 
         }
         tokens.push(Rc::new(lexeme.ok().unwrap()));
     }
-    match parse_tokens(tokens) {
-        Some(decls) => {
-            let result = interpreter.interpret(decls);
-            match result {
-                Ok(result) => println!("{}", result),
-                Err(msg) => eprintln!("{}", msg),
-            };
-        }
-        None => {}
+    if let Some(decls) = parse_tokens(tokens) {
+        let result = interpreter.interpret(decls);
+        match result {
+            Ok(result) => println!("{}", result),
+            Err(msg) => eprintln!("{}", msg),
+        };
     }
 }
 
 fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<DeclRef>> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
-        Ok(result) => {
-            // println!("parsed expression: \n");
-            // let mut astp = AstPrinter {};
-            // for stmt in &result {
-            //     println!("{}\n", astp.visit_declaration(stmt.clone()));
-            // }
-            Some(result)
-        }
-        Err(_) => {
-            //eprint!("error parsing tokens:{}", msg);
-            None
-        }
+        Ok(result) => Some(result),
+        Err(_) => None,
     }
 }
 
@@ -149,7 +114,7 @@ fn set_error(is_error: bool) {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs};
+    use std::fs;
 
     use super::*;
 

@@ -19,5 +19,5 @@ testv:
 clean:
 	$(CARGO) clean
 
-linter:
+lint:
 	$(CARGO) clippy --fix --workspace

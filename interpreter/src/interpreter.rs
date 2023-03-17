@@ -212,8 +212,14 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
     }
 }
 
+impl Default for Interpreter<Stdout> {
+    fn default() -> Self {
+        Interpreter::new()
+    }
+}
+
 impl Interpreter<Stdout> {
-    pub fn new() -> Interpreter<Stdout> {
+    fn new() -> Interpreter<Stdout> {
         Interpreter::new_with_out(Rc::new(RefCell::new(stdout())))
     }
 }

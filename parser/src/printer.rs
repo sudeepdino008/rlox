@@ -13,33 +13,34 @@ impl Visitor<String> for AstPrinter {
     }
 
     fn visit_grouping(&mut self, grp: &Grouping) -> String {
-        let mut exprs = Vec::new();
-        exprs.push("group".to_string());
-        exprs.push(self.visit_expression(&grp.expr));
+        let exprs = vec!["group".to_string(), self.visit_expression(&grp.expr)];
         self.parenthesize(exprs)
     }
 
     fn visit_unary(&mut self, unr: &Unary) -> String {
-        let mut exprs = Vec::new();
-        exprs.push(unr.operator.lexeme.clone());
-        exprs.push(self.visit_expression(&unr.expr));
+        let exprs = vec![
+            unr.operator.lexeme.clone(),
+            self.visit_expression(&unr.expr),
+        ];
         self.parenthesize(exprs)
     }
 
     fn visit_binary(&mut self, bin: &Binary) -> String {
-        let mut exprs = Vec::new();
-        exprs.push(bin.operator.lexeme.clone());
-        exprs.push(self.visit_expression(&bin.left));
-        exprs.push(self.visit_expression(&bin.right));
+        let exprs = vec![
+            bin.operator.lexeme.clone(),
+            self.visit_expression(&bin.left),
+            self.visit_expression(&bin.right),
+        ];
         self.parenthesize(exprs)
     }
 
     fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> String {
-        let mut exprs = Vec::new();
-        exprs.push("print".to_string());
-        exprs.push("\"".to_string());
-        exprs.push(self.visit_expression(&stmt.value));
-        exprs.push("\"".to_string());
+        let exprs = vec![
+            "print".to_string(),
+            "\"".to_string(),
+            self.visit_expression(&stmt.value),
+            "\"".to_string(),
+        ];
         self.parenthesize(exprs)
     }
 
@@ -56,10 +57,11 @@ impl Visitor<String> for AstPrinter {
     }
 
     fn visit_assign(&mut self, assign: &ast::Assign) -> String {
-        let mut exprs = Vec::new();
-        exprs.push(assign.identifier.lexeme.clone());
-        exprs.push("=".to_string());
-        exprs.push(self.visit_expression(&assign.value));
+        let exprs = vec![
+            assign.identifier.lexeme.clone(),
+            "=".to_string(),
+            self.visit_expression(&assign.value),
+        ];
         self.parenthesize(exprs)
     }
 }

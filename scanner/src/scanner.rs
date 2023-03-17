@@ -334,10 +334,10 @@ impl<R: Read + Seek> Scanner<R> {
         }
 
         let num = content.parse::<f64>();
-        if num.is_err() {
-            Err(num.err().unwrap().to_string())
+        if let Ok(num) = num {
+            Ok(num)
         } else {
-            Ok(num.unwrap())
+            Err(num.err().unwrap().to_string())
         }
     }
 
