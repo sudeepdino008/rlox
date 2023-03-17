@@ -4,21 +4,21 @@ use std::{
     cell::RefCell,
     env,
     fs::File,
-    io::{self, BufRead, BufReader, Cursor, Write},
+    io::{self, BufRead, BufReader, Cursor, Read, Seek, Stdout, Write},
     process::exit,
     rc::Rc,
 };
 
-use parser::ast::Binary;
-use parser::ast::{expr_utils::*, DeclRef, Unary};
-use parser::printer::AstPrinter;
-use scanner::tokens::{Token, TokenRef};
+
+use parser::ast::{DeclRef};
+
+use scanner::tokens::{TokenRef};
 
 use errors::error_handling::ErrorState;
 use interpreter::Interpreter;
-use parser::ast::Visitor;
+
 use parser::Parser;
-use scanner::tokens::TokenType;
+
 use scanner::Scanner;
 
 thread_local!(static ERROR_STATE: RefCell<ErrorState>  = RefCell::new(ErrorState { error_occured: false }));
@@ -53,7 +53,7 @@ fn run_prompt() {
             }
             Ok(_) => {}
         }
-        if line.trim().len() == 0 {
+        if line.trim().is_empty() {
             continue;
         }
         run_line(&mut interpreter, &line);
@@ -63,24 +63,37 @@ fn run_prompt() {
 
 #[allow(dead_code)]
 fn run_file(filename: &str) {
+    let mut interpreter = Interpreter::new();
     let scanner = Scanner::build_scanner(BufReader::new(File::open(filename).unwrap()));
-    let mut tokens = Vec::new();
-    for lexeme in scanner {
-        if lexeme.is_err() {
-            eprintln!("stalled due to error");
-            //exit_if_error();
-            return;
-        }
-        tokens.push(Rc::new(lexeme.ok().unwrap()));
-    }
-
-    parse_tokens(tokens);
-    //exit_if_error();
+    execute(&mut interpreter, scanner);
 }
 
-fn run_line(interpreter: &mut Interpreter, contents: &str) {
+fn run_line(interpreter: &mut Interpreter<Stdout>, contents: &str) {
     let cursor = Cursor::new(contents.as_bytes());
     let scanner = Scanner::build_scanner(BufReader::new(cursor));
+    execute(interpreter, scanner);
+
+    // let mut tokens = Vec::new();
+    // for lexeme in scanner {
+    //     if lexeme.is_err() {
+    //         eprintln!("error in inpur");
+    //         return;
+    //     }
+    //     tokens.push(Rc::new(lexeme.ok().unwrap()));
+    // }
+    // match parse_tokens(tokens) {
+    //     Some(decls) => {
+    //         let result = interpreter.interpret(decls);
+    //         match result {
+    //             Ok(result) => println!("{}", result),
+    //             Err(msg) => eprintln!("{}", msg),
+    //         };
+    //     }
+    //     None => {}
+    // }
+}
+
+fn execute<T: Read + Seek, I: Write>(interpreter: &mut Interpreter<I>, scanner: Scanner<T>) {
     let mut tokens = Vec::new();
     for lexeme in scanner {
         if lexeme.is_err() {
@@ -105,16 +118,16 @@ fn parse_tokens(tokens: Vec<TokenRef>) -> Option<Vec<DeclRef>> {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(result) => {
-            println!("parsed expression: \n");
-            let mut astp = AstPrinter {};
-            for stmt in &result {
-                println!("{}\n", astp.visit_declaration(stmt.clone()));
-            }
-            return Some(result);
+            // println!("parsed expression: \n");
+            // let mut astp = AstPrinter {};
+            // for stmt in &result {
+            //     println!("{}\n", astp.visit_declaration(stmt.clone()));
+            // }
+            Some(result)
         }
         Err(_) => {
             //eprint!("error parsing tokens:{}", msg);
-            return None;
+            None
         }
     }
 }
@@ -134,61 +147,54 @@ fn set_error(is_error: bool) {
     })
 }
 
-/// AST printer testing
+#[cfg(test)]
+mod tests {
+    use std::{fs};
 
-#[allow(dead_code)]
-fn try_ast_printer() {
-    let e1 = get_num_literal(2.0);
-    let e2 = get_num_literal(3.0);
-    let b1 = wrap_expr(Binary {
-        left: e1,
-        operator: Rc::new(Token {
-            ttype: TokenType::Plus,
-            lexeme: "+".to_string(),
-            line_num: 0,
-        }),
-        right: e2,
-    });
+    use super::*;
 
-    let g1 = group_expr(b1);
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
 
-    let e3 = get_num_literal(4.0);
-    let b2 = wrap_expr(Binary {
-        left: e3,
-        operator: Rc::new(Token {
-            ttype: TokenType::Star,
-            lexeme: "*".to_string(),
-            line_num: 0,
-        }),
-        right: g1,
-    });
+    #[test]
+    fn data1() {
+        let input_file = "data/1/vars.rl";
+        let exp_file = "data/1/expected";
+        let expected_out = fs::read_to_string(exp_file).unwrap();
 
-    println!("ast: {}", AstPrinter {}.visit_expression(&b2));
-    //println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
+        let scanner = Scanner::build_scanner(BufReader::new(File::open(input_file).unwrap()));
+        let cursor = Rc::new(RefCell::new(Cursor::new(Vec::new())));
 
-    // let's try another
-    let e1 = get_num_literal(45.67);
-    let g1 = group_expr(e1);
+        // writeln!(boxed, "hello world").unwrap();
+        // boxed
+        //     .as_mut()
+        //     .seek(std::io::SeekFrom::Start(0))
+        //     .expect("expected to seek just fine");
 
-    let e2 = get_num_literal(123.0);
-    let e3 = wrap_expr(Unary {
-        operator: Rc::new(Token {
-            ttype: TokenType::Minus,
-            lexeme: "-".to_string(),
-            line_num: 0,
-        }),
-        expr: e2,
-    });
+        // let mut out2 = String::new();
+        // let res = boxed.as_mut().read_to_string(&mut out2);
+        // println!("res: {:?}", res);
+        // println!("out2: {}", out2);
 
-    let b2 = wrap_expr(Binary {
-        left: g1,
-        operator: Rc::new(Token {
-            ttype: TokenType::Star,
-            lexeme: "*".to_string(),
-            line_num: 0,
-        }),
-        right: e3,
-    });
-    println!("ast: {}", AstPrinter {}.visit_expression(&b2));
-    //println!("rpn: {}", RpnPrinter {}.visit_expression(&b2));
+        let mut interpreter = Interpreter::new_with_out(cursor.clone());
+        execute(&mut interpreter, scanner);
+
+        //println!("prevp: {:?}", boxed.as_mut().stream_position());
+
+        cursor
+            .borrow_mut()
+            .seek(std::io::SeekFrom::Start(0))
+            .expect("expected to seek just fine");
+
+        let mut out = String::new();
+        cursor
+            .borrow_mut()
+            .read_to_string(&mut out)
+            .expect("read didn't go as expected");
+
+        assert_eq!(out, expected_out);
+    }
 }

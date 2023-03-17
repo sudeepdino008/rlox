@@ -67,14 +67,14 @@ impl Visitor<String> for AstPrinter {
 impl AstPrinter {
     fn parenthesize(&self, exprs: Vec<String>) -> String {
         let mut content = String::new();
-        content.push_str("(");
+        content.push('(');
 
         for expr in exprs {
-            content.push_str(" ");
+            content.push(' ');
             content.push_str(expr.as_str());
         }
 
-        content.push_str(")");
-        return content;
+        content.push(')');
+        content
     }
 }

@@ -11,3 +11,4 @@ parser = { path = "../parser" }
 
 [lib]
 path = "src/interpreter.rs"
+doctest = false

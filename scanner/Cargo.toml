@@ -10,3 +10,4 @@ phf = { version = "0.10.1", features = ["macros"] }
 
 [lib]
 path = "src/scanner.rs"
+doctest = false

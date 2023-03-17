@@ -25,7 +25,7 @@ impl<R: Read + Seek> Iterator for Scanner<R> {
             return None;
         }
         let result = self.scan_token();
-        return if result.is_ok() {
+        if result.is_ok() {
             let maybe_token = result.unwrap();
             if maybe_token.is_none() {
                 self.end_reached = true;
@@ -39,20 +39,20 @@ impl<R: Read + Seek> Iterator for Scanner<R> {
             }
         } else {
             Some(Err(result.unwrap_err()))
-        };
+        }
     }
 }
 
 impl<R: Read + Seek> Scanner<R> {
     #[allow(dead_code)]
     pub fn build_scanner(reader: R) -> Scanner<R> {
-        return Scanner {
+        Scanner {
             contents: reader,
             start: 0,
             current: 0,
             line: 1,
             end_reached: false,
-        };
+        }
     }
 
     fn scan_token(&mut self) -> Result<Option<Token>, String> {
@@ -247,7 +247,7 @@ impl<R: Read + Seek> Scanner<R> {
             }
         };
 
-        return Ok(Some(token));
+        Ok(Some(token))
     }
 
     fn advance(&mut self) -> Option<char> {
@@ -263,18 +263,18 @@ impl<R: Read + Seek> Scanner<R> {
         }
         let c = buf[0] as char;
         if c == '\n' {
-            self.line = self.line + 1;
+            self.line += 1;
         }
-        return Some(c);
+        Some(c)
     }
 
     fn match_curr(&mut self, value: &str) -> bool {
         let next_c = self.peek();
-        return next_c.is_some() && next_c.unwrap().to_string() == value;
+        next_c.is_some() && next_c.unwrap().to_string() == value
     }
 
     fn peek(&mut self) -> Option<char> {
-        let curr_pos = self.contents.seek(SeekFrom::Current(0));
+        let curr_pos = self.contents.stream_position();
         if curr_pos.is_err() {
             panic!("seeking failed {:?}", curr_pos.err());
         }
@@ -293,7 +293,7 @@ impl<R: Read + Seek> Scanner<R> {
             Err(err) => panic!("seeking failed {:?}", err),
         };
 
-        return Some(buf[0] as char);
+        Some(buf[0] as char)
     }
 
     fn extract_string_token(&mut self) -> Result<String, String> {
@@ -335,9 +335,9 @@ impl<R: Read + Seek> Scanner<R> {
 
         let num = content.parse::<f64>();
         if num.is_err() {
-            return Err(num.err().unwrap().to_string());
+            Err(num.err().unwrap().to_string())
         } else {
-            return Ok(num.unwrap());
+            Ok(num.unwrap())
         }
     }
 
@@ -370,6 +370,6 @@ impl<R: Read + Seek> Scanner<R> {
             token.ttype = keyword;
         }
 
-        return Ok(token);
+        Ok(token)
     }
 }

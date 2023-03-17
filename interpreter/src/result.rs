@@ -11,9 +11,9 @@ pub enum IResult {
 impl Clone for IResult {
     fn clone(&self) -> Self {
         match self {
-            Self::Number(arg0) => Self::Number(arg0.clone()),
+            Self::Number(arg0) => Self::Number(*arg0),
             Self::String(arg0) => Self::String(arg0.clone()),
-            Self::Bool(arg0) => Self::Bool(arg0.clone()),
+            Self::Bool(arg0) => Self::Bool(*arg0),
             Self::None => Self::None,
         }
     }

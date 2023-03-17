@@ -1,6 +1,9 @@
 mod environment;
 mod result;
+mod tests;
 
+use std::cell::RefCell;
+use std::io::{stdout, Stdout, Write};
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 
@@ -11,20 +14,13 @@ use scanner::tokens::TokenType;
 use result::IResult;
 use result::IResult::{Bool, None, Number, String};
 
-static INTERPRETER_ERR_TAG: &'static str = "INTERPRETER_ERROR:";
-pub struct Interpreter {
+static INTERPRETER_ERR_TAG: &str = "INTERPRETER_ERROR:";
+pub struct Interpreter<T: Write> {
     environment: Environment,
+    ostream: Rc<RefCell<T>>,
 }
 
-impl Interpreter {
-    pub fn new() -> Interpreter {
-        Interpreter {
-            environment: Environment::new(),
-        }
-    }
-}
-
-impl Visitor<IResult> for Interpreter {
+impl<T: Write> Visitor<IResult> for Interpreter<T> {
     fn visit_literal(&mut self, lit: &Literal) -> IResult {
         match &lit.value.ttype {
             TokenType::String(contents) => String(Rc::new(contents.to_string())),
@@ -46,7 +42,7 @@ impl Visitor<IResult> for Interpreter {
                     )
                 }
             }
-            tkn => self.error(&tkn, "invalid token found; expected literal"),
+            tkn => self.error(tkn, "invalid token found; expected literal"),
         }
     }
 
@@ -78,7 +74,7 @@ impl Visitor<IResult> for Interpreter {
                     self.error(&unr.operator.ttype, "invalid operand for bang operator");
                 }
             }
-            tkn => self.error(&tkn, "invalid token found; expected unary operator"),
+            tkn => self.error(tkn, "invalid token found; expected unary operator"),
         }
     }
 
@@ -180,7 +176,7 @@ impl Visitor<IResult> for Interpreter {
         if self.environment.is_binded(identifier) {
             let rhs = self.visit_expression(&assign.value);
             self.environment.insert_bind(identifier, rhs);
-            return None;
+            None
         } else {
             self.error(
                 &assign.identifier.ttype,
@@ -190,16 +186,23 @@ impl Visitor<IResult> for Interpreter {
     }
 
     fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> IResult {
-        println!("{}", self.visit_expression(&stmt.value));
-        return None;
+        let value = self.visit_expression(&stmt.value);
+        //self.ostream.by_ref()
+        //let mut ss = self.ostream;
+        match writeln!(self.ostream.as_ref().borrow_mut(), "{}", value) {
+            Ok(_) => {}
+            Err(err) => self.error(
+                &TokenType::Print,
+                format!("failed to write to output stream: {:?}", err).as_str(),
+            ),
+        }
+        None
     }
 
     fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
         if decl.rhs.is_none() {
-            println!("inserting {}", decl.identifier.lexeme);
             self.environment.insert(&decl.identifier.lexeme);
         } else {
-            println!("inserting2 {}", decl.identifier.lexeme);
             let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
             self.environment
                 .insert_bind(&decl.identifier.lexeme, rhs_result);
@@ -209,7 +212,20 @@ impl Visitor<IResult> for Interpreter {
     }
 }
 
-impl Interpreter {
+impl Interpreter<Stdout> {
+    pub fn new() -> Interpreter<Stdout> {
+        Interpreter::new_with_out(Rc::new(RefCell::new(stdout())))
+    }
+}
+
+impl<T: Write> Interpreter<T> {
+    pub fn new_with_out(ostream: Rc<RefCell<T>>) -> Interpreter<T> {
+        Interpreter {
+            environment: Environment::new(),
+            ostream,
+        }
+    }
+
     pub fn interpret(&mut self, decls: Vec<ast::DeclRef>) -> Result<IResult, std::string::String> {
         let mut result = IResult::None;
         for decl in decls {
@@ -218,7 +234,7 @@ impl Interpreter {
                 Err(err) => return Err(err),
             }
         }
-        return Ok(result);
+        Ok(result)
     }
     fn interpret_decl(&mut self, decl: ast::DeclRef) -> Result<IResult, std::string::String> {
         let prev = panic::take_hook();
@@ -233,11 +249,11 @@ impl Interpreter {
         }));
 
         let result = panic::catch_unwind(AssertUnwindSafe(|| self.visit_declaration(decl)));
-        return if let Ok(exp) = result {
+        if let Ok(exp) = result {
             Ok(exp)
         } else {
             Err("".to_string())
-        };
+        }
     }
 
     fn error(&self, _ttype: &TokenType, errmsg: &str) -> ! {

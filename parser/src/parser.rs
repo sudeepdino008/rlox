@@ -13,7 +13,7 @@ use crate::ast::{
 use ast::{Assign, DeclRef, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
 
-static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
+static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
 
 #[allow(dead_code)]
 pub struct Parser {
@@ -48,7 +48,7 @@ impl Parser {
             while !self.is_end() {
                 stmts.push(self.declaration());
             }
-            return stmts;
+            stmts
         })) {
             Ok(stmts) => Ok(stmts),
             Err(_) => Err("".to_string()),
@@ -104,7 +104,7 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expression {
-        return self.assignment();
+        self.assignment()
     }
 
     fn assignment(&mut self) -> Expression {
@@ -214,7 +214,7 @@ impl Parser {
             }
         }
 
-        return false;
+        false
     }
 
     fn advance(&mut self) {
@@ -243,7 +243,7 @@ impl Parser {
     }
 
     fn consume(&mut self, ttype: &TokenType, errmsg: &str) {
-        if self.check(&ttype) {
+        if self.check(ttype) {
             return self.advance();
         }
 
