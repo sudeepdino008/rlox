@@ -13,6 +13,10 @@ impl Environment {
         }
     }
 
+    pub fn is_binded(&self, name: &str) -> bool {
+        self.bindings.contains_key(name)
+    }
+
     pub fn get<T: Any>(&self, name: &str) -> Option<&T> {
         self.bindings.get(name).and_then(|v| v.downcast_ref::<T>())
     }

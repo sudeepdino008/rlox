@@ -10,7 +10,7 @@ use crate::ast::{
     expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, Unary,
 };
 
-use ast::{DeclRef, StmtDecl, VarDecl};
+use ast::{Assign, DeclRef, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &'static str = "PARSER_ERROR:";
@@ -104,7 +104,21 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expression {
-        return self.equality();
+        return self.assignment();
+    }
+
+    fn assignment(&mut self) -> Expression {
+        if self.match_t(&[TokenType::Identifier]) {
+            let identifier = self.previous();
+            if self.match_t(&[TokenType::Equal]) {
+                let value = self.assignment();
+                return wrap_expr(Assign { identifier, value });
+            }
+
+            self.retreat();
+        }
+
+        self.equality()
     }
 
     fn equality(&mut self) -> Expression {
@@ -205,6 +219,10 @@ impl Parser {
 
     fn advance(&mut self) {
         self.token_cursor += 1;
+    }
+
+    fn retreat(&mut self) {
+        self.token_cursor -= 1;
     }
 
     fn check(&self, ttype: &TokenType) -> bool {

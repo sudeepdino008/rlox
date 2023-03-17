@@ -9,6 +9,7 @@ pub enum ElementType {
     Grouping,
     Unary,
     Binary,
+    Assign,
 }
 
 pub trait ExprT: AsAny {
@@ -171,6 +172,9 @@ pub trait Visitor<Ret> {
             ElementType::Binary => {
                 self.visit_binary(vall.as_ref().as_any().downcast_ref::<Binary>().unwrap())
             }
+            ElementType::Assign => {
+                self.visit_assign(vall.as_ref().as_any().downcast_ref::<Assign>().unwrap())
+            }
         };
     }
 
@@ -178,6 +182,7 @@ pub trait Visitor<Ret> {
     fn visit_grouping(&mut self, grp: &Grouping) -> Ret;
     fn visit_unary(&mut self, unr: &Unary) -> Ret;
     fn visit_binary(&mut self, bin: &Binary) -> Ret;
+    fn visit_assign(&mut self, assign: &Assign) -> Ret;
 }
 
 pub struct ExprStmt {
@@ -248,6 +253,18 @@ pub struct Binary {
 impl ExprT for Binary {
     fn element_type(&self) -> ElementType {
         ElementType::Binary
+    }
+}
+
+// assignment
+pub struct Assign {
+    pub identifier: TokenRef,
+    pub value: Expression,
+}
+
+impl ExprT for Assign {
+    fn element_type(&self) -> ElementType {
+        ElementType::Assign
     }
 }
 

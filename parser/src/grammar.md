@@ -1,6 +1,7 @@
 
 
-expression     → equality ;
+expression     -> assignment
+assignment     → identifier "=" assignment | equality ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;

@@ -175,6 +175,20 @@ impl Visitor<IResult> for Interpreter {
         }
     }
 
+    fn visit_assign(&mut self, assign: &ast::Assign) -> IResult {
+        let identifier = assign.identifier.lexeme.as_str();
+        if self.environment.is_binded(identifier) {
+            let rhs = self.visit_expression(&assign.value);
+            self.environment.insert_bind(identifier, rhs);
+            return None;
+        } else {
+            self.error(
+                &assign.identifier.ttype,
+                format!("{} is not binded", identifier).as_str(),
+            );
+        }
+    }
+
     fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> IResult {
         println!("{}", self.visit_expression(&stmt.value));
         return None;

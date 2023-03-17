@@ -54,6 +54,14 @@ impl Visitor<String> for AstPrinter {
 
         self.parenthesize(exprs)
     }
+
+    fn visit_assign(&mut self, assign: &ast::Assign) -> String {
+        let mut exprs = Vec::new();
+        exprs.push(assign.identifier.lexeme.clone());
+        exprs.push("=".to_string());
+        exprs.push(self.visit_expression(&assign.value));
+        self.parenthesize(exprs)
+    }
 }
 
 impl AstPrinter {
