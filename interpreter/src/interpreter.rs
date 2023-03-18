@@ -1,6 +1,5 @@
 mod environment;
 mod result;
-mod tests;
 
 use std::cell::RefCell;
 use std::io::{stdout, Stdout, Write};
@@ -38,7 +37,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
                 } else {
                     self.error(
                         &lit.value.ttype,
-                        format!("variable {} not found", var.as_str()).as_str(),
+                        format!("variable {} not in scope", var.as_str()).as_str(),
                     )
                 }
             }
@@ -224,7 +223,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
 
         self.environment = parent;
 
-        todo!()
+        None
     }
 }
 
@@ -274,7 +273,12 @@ impl<T: Write> Interpreter<T> {
         if let Ok(exp) = result {
             Ok(exp)
         } else {
-            Err("".to_string())
+            //Err("".to_string())
+            Err(result
+                .unwrap_err()
+                .downcast::<std::string::String>()
+                .unwrap()
+                .to_string())
         }
     }
 

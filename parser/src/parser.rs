@@ -81,7 +81,7 @@ impl Parser {
         StmtDecl {
             stmt: if self.match_t(&[TokenType::Print]) {
                 Rc::new(self.print_stmt())
-            } else if self.match_t(&[TokenType::LeftBrace]) {
+            } else if self.match_t(&[TokenType::LeftParen]) {
                 Rc::new(self.block_stmt())
             } else {
                 Rc::new(self.expr_stmt())
@@ -107,7 +107,7 @@ impl Parser {
 
     fn block_stmt(&mut self) -> BlockStmt {
         let mut decls = Vec::new();
-        while !self.match_t(&[TokenType::RightBrace]) {
+        while !self.match_t(&[TokenType::RightParen]) {
             decls.push(self.declaration());
         }
         BlockStmt {

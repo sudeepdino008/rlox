@@ -63,30 +63,47 @@ fn run_prompt() {
 fn run_file(filename: &str) {
     let mut interpreter = Interpreter::default();
     let scanner = Scanner::build_scanner(BufReader::new(File::open(filename).unwrap()));
-    execute(&mut interpreter, scanner);
+    _ = execute(&mut interpreter, scanner);
 }
 
 fn run_line(interpreter: &mut Interpreter<Stdout>, contents: &str) {
     let cursor = Cursor::new(contents.as_bytes());
     let scanner = Scanner::build_scanner(BufReader::new(cursor));
-    execute(interpreter, scanner);
+    _ = execute(interpreter, scanner);
 }
 
-fn execute<T: Read + Seek, I: Write>(interpreter: &mut Interpreter<I>, scanner: Scanner<T>) {
+fn execute<T: Read + Seek, I: Write>(
+    interpreter: &mut Interpreter<I>,
+    scanner: Scanner<T>,
+) -> Result<(), String> {
     let mut tokens = Vec::new();
     for lexeme in scanner {
         if lexeme.is_err() {
             eprintln!("error in inpur");
-            return;
+            return Err(lexeme.unwrap_err());
         }
         tokens.push(Rc::new(lexeme.ok().unwrap()));
+        //println!("{:?}", tokens.last().unwrap());
     }
     if let Some(decls) = parse_tokens(tokens) {
+        // // print parser output
+        // for decl in decls.iter() {
+        //     AstPrinter {}.visit_declaration(decl.clone());
+        // }
+
         let result = interpreter.interpret(decls);
         match result {
-            Ok(result) => println!("{}", result),
-            Err(msg) => eprintln!("{}", msg),
-        };
+            Ok(result) => {
+                println!("{}", result);
+                Ok(())
+            }
+            Err(msg) => {
+                //eprintln!("{}", msg)
+                Err(msg)
+            }
+        }
+    } else {
+        Err("error in parsing tokens".to_string())
     }
 }
 

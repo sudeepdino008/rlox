@@ -61,7 +61,7 @@ impl Environment {
 
 impl Drop for Environment {
     fn drop(&mut self) {
-        println!("dropping out of scope");
+        //println!("dropping out of scope");
         self.bindings.clear();
     }
 }
