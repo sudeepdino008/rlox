@@ -30,6 +30,7 @@ name = "interpreter"
 version = "0.1.0"
 dependencies = [
  "parser",
+ "rustcore",
  "scanner",
 ]
 
@@ -157,8 +158,13 @@ version = "0.1.0"
 dependencies = [
  "interpreter",
  "parser",
+ "rustcore",
  "scanner",
 ]
+
+[[package]]
+name = "rustcore"
+version = "0.1.0"
 
 [[package]]
 name = "scanner"

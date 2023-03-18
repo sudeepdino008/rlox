@@ -21,3 +21,6 @@ clean:
 
 lint:
 	$(CARGO) clippy --fix --workspace
+
+lintd:
+	$(CARGO) clippy --fix --workspace --allow-staged --allow-dirty

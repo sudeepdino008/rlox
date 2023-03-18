@@ -25,8 +25,7 @@ impl<R: Read + Seek> Iterator for Scanner<R> {
             return None;
         }
         let result = self.scan_token();
-        if result.is_ok() {
-            let maybe_token = result.unwrap();
+        if let Ok(maybe_token) = result {
             if maybe_token.is_none() {
                 self.end_reached = true;
                 Some(Ok(Token {
@@ -201,37 +200,36 @@ impl<R: Read + Seek> Scanner<R> {
 
             "\"" => {
                 let token = self.extract_string_token();
-                if token.is_err() {
-                    return Err(token.err().unwrap());
-                } else {
-                    let contents = token.unwrap();
+                if let Ok(contents) = token {
                     Token {
                         ttype: TokenType::String(contents),
                         lexeme: String::new(),
                         line_num: self.line,
                     }
+                } else {
+                    return Err(token.err().unwrap());
                 }
             }
 
             d if d.chars().collect::<Vec<char>>()[0].is_numeric() => {
                 let token = self.extract_number(d);
-                if token.is_err() {
-                    return Err(token.err().unwrap());
-                } else {
+                if let Ok(contents) = token {
                     Token {
-                        ttype: TokenType::Number(token.unwrap()),
+                        ttype: TokenType::Number(contents),
                         lexeme: String::new(),
                         line_num: self.line,
                     }
+                } else {
+                    return Err(token.err().unwrap());
                 }
             }
 
             a if a.chars().collect::<Vec<char>>()[0].is_alphanumeric() => {
                 let token = self.extract_identifier(a);
-                if token.is_err() {
-                    return Err(token.err().unwrap());
+                if let Ok(contents) = token {
+                    contents
                 } else {
-                    token.unwrap()
+                    return Err(token.err().unwrap());
                 }
             }
 

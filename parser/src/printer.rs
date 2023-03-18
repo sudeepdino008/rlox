@@ -64,6 +64,16 @@ impl Visitor<String> for AstPrinter {
         ];
         self.parenthesize(exprs)
     }
+
+    fn visit_block_stmt(&mut self, stmt: &ast::BlockStmt) -> String {
+        let mut exprs = Vec::new();
+        exprs.push("block{".to_string());
+        for decl in stmt.declarations.iter() {
+            exprs.push(self.visit_declaration(decl.clone()));
+        }
+        exprs.push("}".to_string());
+        self.parenthesize(exprs)
+    }
 }
 
 impl AstPrinter {

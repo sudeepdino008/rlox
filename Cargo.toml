@@ -7,6 +7,7 @@ edition = "2021"
 
 [workspace]
 members = [
+    "rustcore",
     "parser",
     "interpreter",
     "scanner",
@@ -19,3 +20,4 @@ as-any = "0.3.0"
 parser = { path = "./parser" }
 scanner = {path = "./scanner"}
 interpreter = {path = "./interpreter"}
+rustcore = {path = "./rustcore"}

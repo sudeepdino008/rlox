@@ -7,7 +7,7 @@ use std::io::{stdout, Stdout, Write};
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 
-use environment::Environment;
+use environment::{Environment, EnvironmentRef};
 use parser::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
 use scanner::tokens::TokenType;
 
@@ -16,7 +16,7 @@ use result::IResult::{Bool, None, Number, String};
 
 static INTERPRETER_ERR_TAG: &str = "INTERPRETER_ERROR:";
 pub struct Interpreter<T: Write> {
-    environment: Environment,
+    environment: EnvironmentRef,
     ostream: Rc<RefCell<T>>,
 }
 
@@ -175,7 +175,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         let identifier = assign.identifier.lexeme.as_str();
         if self.environment.is_binded(identifier) {
             let rhs = self.visit_expression(&assign.value);
-            self.environment.assign(identifier, rhs);
+            self.environment.borrow_mut().assign(identifier, rhs);
             None
         } else {
             self.error(
@@ -201,14 +201,30 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
 
     fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
         if decl.rhs.is_none() {
-            self.environment.declare(&decl.identifier.lexeme);
+            self.environment
+                .borrow_mut()
+                .declare(&decl.identifier.lexeme);
         } else {
             let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
             self.environment
+                .borrow_mut()
                 .declare_and_init(&decl.identifier.lexeme, rhs_result);
         }
 
         None
+    }
+
+    fn visit_block_stmt(&mut self, stmt: &ast::BlockStmt) -> IResult {
+        let parent: EnvironmentRef = self.environment.clone();
+        self.environment = Environment::new_with_parent(parent.clone());
+
+        for decl in stmt.declarations.iter() {
+            self.visit_declaration(decl.clone());
+        }
+
+        self.environment = parent;
+
+        todo!()
     }
 }
 

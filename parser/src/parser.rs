@@ -10,7 +10,7 @@ use crate::ast::{
     expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, Unary,
 };
 
-use ast::{Assign, DeclRef, StmtDecl, VarDecl};
+use ast::{Assign, BlockStmt, DeclRef, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
@@ -81,6 +81,8 @@ impl Parser {
         StmtDecl {
             stmt: if self.match_t(&[TokenType::Print]) {
                 Rc::new(self.print_stmt())
+            } else if self.match_t(&[TokenType::LeftBrace]) {
+                Rc::new(self.block_stmt())
             } else {
                 Rc::new(self.expr_stmt())
             },
@@ -100,6 +102,16 @@ impl Parser {
         self.consume(&TokenType::Semicolon, "semicolon missing");
         ExprStmt {
             value: Rc::new(value),
+        }
+    }
+
+    fn block_stmt(&mut self) -> BlockStmt {
+        let mut decls = Vec::new();
+        while !self.match_t(&[TokenType::RightBrace]) {
+            decls.push(self.declaration());
+        }
+        BlockStmt {
+            declarations: Rc::new(decls),
         }
     }
 

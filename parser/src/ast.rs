@@ -23,12 +23,10 @@ pub type ExprRef = Rc<Expression>;
 pub enum StmtType {
     Expression,
     Print,
+    Block,
 }
 pub trait StmtT: DeclT {
     fn stmt_type(&self) -> StmtType;
-    fn is_print(&self) -> bool {
-        self.stmt_type() == StmtType::Print
-    }
 }
 
 // declaration
@@ -134,28 +132,35 @@ pub trait Visitor<Ret> {
     }
     fn visit_var_decl(&mut self, decl: &VarDecl) -> Ret;
     fn visit_statement(&mut self, stmt: &StmtDecl) -> Ret {
-        if stmt.stmt.is_print() {
-            self.visit_print_stmt(
-                stmt.stmt
-                    .as_ref()
-                    .as_any()
-                    .downcast_ref::<PrintStmt>()
-                    .unwrap(),
-            )
-        } else {
-            self.visit_expression_stmt(
+        match stmt.stmt.stmt_type() {
+            StmtType::Expression => self.visit_expression_stmt(
                 stmt.stmt
                     .as_ref()
                     .as_any()
                     .downcast_ref::<ExprStmt>()
                     .unwrap(),
-            )
+            ),
+            StmtType::Print => self.visit_print_stmt(
+                stmt.stmt
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref::<PrintStmt>()
+                    .unwrap(),
+            ),
+            StmtType::Block => self.visit_block_stmt(
+                stmt.stmt
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref::<BlockStmt>()
+                    .unwrap(),
+            ),
         }
     }
     fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Ret;
     fn visit_expression_stmt(&mut self, stmt: &ExprStmt) -> Ret {
         self.visit_expression(&stmt.value)
     }
+    fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Ret;
 
     fn visit_expression(&mut self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();
@@ -185,6 +190,7 @@ pub trait Visitor<Ret> {
     fn visit_assign(&mut self, assign: &Assign) -> Ret;
 }
 
+// statements
 pub struct ExprStmt {
     pub value: ExprRef,
 }
@@ -200,6 +206,16 @@ pub struct PrintStmt {
 impl StmtT for PrintStmt {
     fn stmt_type(&self) -> StmtType {
         StmtType::Print
+    }
+}
+
+pub struct BlockStmt {
+    pub declarations: Rc<Vec<DeclRef>>,
+}
+
+impl StmtT for BlockStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::Block
     }
 }
 
