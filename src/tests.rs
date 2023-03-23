@@ -27,8 +27,11 @@ fn out_of_scope_err() {
 
 #[test]
 fn if_tests() {
-    let params = &RunParams { should_fail: false };
-    compare_interpreter_runs("data/4/input.rl", "data/4/expected.txt", params)
+    let mut params = &mut RunParams { should_fail: false };
+    compare_interpreter_runs("data/4/input.rl", "data/4/expected.txt", params);
+
+    params.should_fail = true;
+    compare_interpreter_runs("data/4/input_err.rl", "data/4/expected_err.txt", params);
 }
 
 #[allow(dead_code)]

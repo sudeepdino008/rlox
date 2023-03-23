@@ -142,11 +142,18 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
             TokenType::Dot => todo!(),
             TokenType::Semicolon => todo!(),
             TokenType::Bang => todo!(),
-            TokenType::BangEqual => todo!(),
+            TokenType::BangEqual => Bool(leftv != rightv),
             TokenType::Equal => todo!(),
-            TokenType::EqualEqual => todo!(),
+            TokenType::EqualEqual => Bool(leftv == rightv),
             TokenType::Less => todo!(),
-            TokenType::LessEqual => todo!(),
+            TokenType::LessEqual => {
+                if let Number(left) = leftv {
+                    if let Number(right) = rightv {
+                        return Bool(left >= right);
+                    }
+                }
+                self.error(&bin.operator.ttype, "invalid operands for less-equal")
+            }
             TokenType::Identifier => todo!(),
             TokenType::String(_) => todo!(),
             TokenType::Number(_) => todo!(),

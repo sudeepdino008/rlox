@@ -1,0 +1,1 @@
+INTERPRETER_ERROR:condition expression should return boolean

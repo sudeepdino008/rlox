@@ -37,3 +37,20 @@ if a == 1
    if b == 3 
    print "11";
    else "print 12";
+
+
+if a == 3 {
+    print "13";
+}
+
+if a != 1 {
+    print "14";
+} else {
+    print "15";
+}
+
+if !(a==2) {
+    print "16";
+} else {
+    print "17";
+}
