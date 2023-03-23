@@ -15,7 +15,8 @@ primary        → NUMBER | STRING | "true" | "false" | "nil"
 program -> declaration* EOF ;
 declaration -> varDecl | statement;
 varDecl -> "var" identifier ( "=" expression )? ";";
-statement -> exprStmt | printStmt | block;
+statement -> exprStmt | printStmt | block | ifStmt;
+ifStmt -> "if" expression statement ("else" statement)? ;
 block -> "{" declaration* "}"
 exprStmt -> expression ";" ;
 printStmt -> "print" expression ";" ;

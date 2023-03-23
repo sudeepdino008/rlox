@@ -25,6 +25,12 @@ fn out_of_scope_err() {
     compare_interpreter_runs("data/3/input.rl", "data/3/expected.txt", params);
 }
 
+#[test]
+fn if_tests() {
+    let params = &RunParams { should_fail: false };
+    compare_interpreter_runs("data/4/input.rl", "data/4/expected.txt", params)
+}
+
 #[allow(dead_code)]
 fn compare_interpreter_runs(input_program: &str, expected_out_file: &str, params: &RunParams) {
     let expected_out = fs::read_to_string(expected_out_file).unwrap();

@@ -225,6 +225,21 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
 
         None
     }
+
+    fn visit_if_stmt(&mut self, stmt: &ast::IfStmt) -> IResult {
+        let condition_val = self.visit_expression(&stmt.condition);
+        if let Bool(condition) = condition_val {
+            if condition {
+                self.visit_statement(&stmt.then_b);
+            } else if let Some(else_b) = &stmt.else_b {
+                self.visit_statement(else_b);
+            }
+        } else {
+            self.error(&TokenType::If, "condition expression should return boolean")
+        }
+
+        None
+    }
 }
 
 impl Default for Interpreter<Stdout> {

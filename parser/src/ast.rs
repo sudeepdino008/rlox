@@ -24,6 +24,7 @@ pub enum StmtType {
     Expression,
     Print,
     Block,
+    If,
 }
 pub trait StmtT: DeclT {
     fn stmt_type(&self) -> StmtType;
@@ -133,27 +134,16 @@ pub trait Visitor<Ret> {
     fn visit_var_decl(&mut self, decl: &VarDecl) -> Ret;
     fn visit_statement(&mut self, stmt: &StmtDecl) -> Ret {
         match stmt.stmt.stmt_type() {
-            StmtType::Expression => self.visit_expression_stmt(
-                stmt.stmt
-                    .as_ref()
-                    .as_any()
-                    .downcast_ref::<ExprStmt>()
-                    .unwrap(),
-            ),
-            StmtType::Print => self.visit_print_stmt(
-                stmt.stmt
-                    .as_ref()
-                    .as_any()
-                    .downcast_ref::<PrintStmt>()
-                    .unwrap(),
-            ),
-            StmtType::Block => self.visit_block_stmt(
-                stmt.stmt
-                    .as_ref()
-                    .as_any()
-                    .downcast_ref::<BlockStmt>()
-                    .unwrap(),
-            ),
+            StmtType::Expression => {
+                self.visit_expression_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
+            }
+            StmtType::Print => {
+                self.visit_print_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
+            }
+            StmtType::Block => {
+                self.visit_block_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
+            }
+            StmtType::If => self.visit_if_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap()),
         }
     }
     fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Ret;
@@ -161,24 +151,23 @@ pub trait Visitor<Ret> {
         self.visit_expression(&stmt.value)
     }
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Ret;
+    fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Ret;
 
     fn visit_expression(&mut self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();
         return match expr.value.as_ref().element_type() {
             ElementType::Literal => {
-                self.visit_literal(vall.as_ref().as_any().downcast_ref::<Literal>().unwrap())
+                self.visit_literal(vall.as_ref().as_any().downcast_ref().unwrap())
             }
             ElementType::Grouping => {
-                self.visit_grouping(vall.as_ref().as_any().downcast_ref::<Grouping>().unwrap())
+                self.visit_grouping(vall.as_ref().as_any().downcast_ref().unwrap())
             }
-            ElementType::Unary => {
-                self.visit_unary(vall.as_ref().as_any().downcast_ref::<Unary>().unwrap())
-            }
+            ElementType::Unary => self.visit_unary(vall.as_ref().as_any().downcast_ref().unwrap()),
             ElementType::Binary => {
-                self.visit_binary(vall.as_ref().as_any().downcast_ref::<Binary>().unwrap())
+                self.visit_binary(vall.as_ref().as_any().downcast_ref().unwrap())
             }
             ElementType::Assign => {
-                self.visit_assign(vall.as_ref().as_any().downcast_ref::<Assign>().unwrap())
+                self.visit_assign(vall.as_ref().as_any().downcast_ref().unwrap())
             }
         };
     }
@@ -216,6 +205,18 @@ pub struct BlockStmt {
 impl StmtT for BlockStmt {
     fn stmt_type(&self) -> StmtType {
         StmtType::Block
+    }
+}
+
+pub struct IfStmt {
+    pub condition: ExprRef,
+    pub then_b: StmtDecl,
+    pub else_b: Option<StmtDecl>,
+}
+
+impl StmtT for IfStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::If
     }
 }
 

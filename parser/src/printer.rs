@@ -74,6 +74,23 @@ impl Visitor<String> for AstPrinter {
         exprs.push("}".to_string());
         self.parenthesize(exprs)
     }
+
+    fn visit_if_stmt(&mut self, stmt: &ast::IfStmt) -> String {
+        let mut exprs = vec![
+            "if".to_string(),
+            self.visit_expression(&stmt.condition),
+            "then\n".to_string(),
+            self.visit_statement(&stmt.then_b),
+        ];
+
+        if let Some(else_br) = &stmt.else_b {
+            exprs.push("\nelse\n".to_string());
+            exprs.push(self.visit_statement(else_br));
+            exprs.push("\nend\n".to_string());
+        }
+
+        self.parenthesize(exprs)
+    }
 }
 
 impl AstPrinter {

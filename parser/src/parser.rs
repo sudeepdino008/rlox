@@ -10,7 +10,7 @@ use crate::ast::{
     expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, Unary,
 };
 
-use ast::{Assign, BlockStmt, DeclRef, StmtDecl, VarDecl};
+use ast::{Assign, BlockStmt, DeclRef, IfStmt, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
@@ -83,6 +83,8 @@ impl Parser {
                 Rc::new(self.print_stmt())
             } else if self.match_t(&[TokenType::LeftParen]) {
                 Rc::new(self.block_stmt())
+            } else if self.match_t(&[TokenType::If]) {
+                Rc::new(self.if_stmt())
             } else {
                 Rc::new(self.expr_stmt())
             },
@@ -112,6 +114,23 @@ impl Parser {
         }
         BlockStmt {
             declarations: Rc::new(decls),
+        }
+    }
+
+    fn if_stmt(&mut self) -> IfStmt {
+        // assuming if is already consumed
+        let condition = self.expression();
+        let then_b = self.statement();
+        let else_b = if self.match_t(&[TokenType::Else]) {
+            Some(self.statement())
+        } else {
+            None
+        };
+
+        IfStmt {
+            condition: Rc::new(condition),
+            then_b,
+            else_b,
         }
     }
 
