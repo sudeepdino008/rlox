@@ -34,6 +34,7 @@ fn if_tests() {
 }
 
 // tests for logical operators
+// while loop
 
 #[allow(dead_code)]
 fn compare_interpreter_runs(input_program: &str, expected_out_file: &str, params: &RunParams) {

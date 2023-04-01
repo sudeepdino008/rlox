@@ -103,6 +103,17 @@ impl Visitor<String> for AstPrinter {
         ];
         self.parenthesize(exprs)
     }
+
+    fn visit_while_stmt(&mut self, stmt: &ast::WhileStmt) -> String {
+        let exprs = vec![
+            "while".to_string(),
+            self.visit_expression(&stmt.condition),
+            "\n{\n".to_string(),
+            self.visit_block_stmt(&stmt.body),
+            "\n{\n".to_string(),
+        ];
+        self.parenthesize(exprs)
+    }
 }
 
 impl AstPrinter {

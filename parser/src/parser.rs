@@ -11,7 +11,7 @@ use crate::ast::{Binary, ExprStmt, Expression, Grouping, Literal, Logical, Print
 
 use utils::expr_utils::wrap_expr;
 
-use ast::{Assign, BlockStmt, DeclRef, IfStmt, StmtDecl, VarDecl};
+use ast::{Assign, BlockStmt, DeclRef, IfStmt, StmtDecl, VarDecl, WhileStmt};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
@@ -83,9 +83,11 @@ impl Parser {
             stmt: if self.match_t(&[TokenType::Print]) {
                 Rc::new(self.print_stmt())
             } else if self.match_t(&[TokenType::LeftParen]) {
-                Rc::new(self.block_stmt())
+                Rc::new(self.block_stmt(true))
             } else if self.match_t(&[TokenType::If]) {
                 Rc::new(self.if_stmt())
+            } else if self.match_t(&[TokenType::While]) {
+                Rc::new(self.while_stmt())
             } else {
                 Rc::new(self.expr_stmt())
             },
@@ -108,7 +110,10 @@ impl Parser {
         }
     }
 
-    fn block_stmt(&mut self) -> BlockStmt {
+    fn block_stmt(&mut self, ft_consumed: bool) -> BlockStmt {
+        if !ft_consumed {
+            self.consume(&TokenType::LeftParen, "expected '{' at start of block");
+        }
         let mut decls = Vec::new();
         while !self.match_t(&[TokenType::RightParen]) {
             decls.push(self.declaration());
@@ -120,18 +125,22 @@ impl Parser {
 
     fn if_stmt(&mut self) -> IfStmt {
         // assuming if is already consumed
-        let condition = self.expression();
-        let then_b = self.statement();
-        let else_b = if self.match_t(&[TokenType::Else]) {
-            Some(self.statement())
-        } else {
-            None
-        };
-
         IfStmt {
-            condition: Rc::new(condition),
-            then_b,
-            else_b,
+            condition: Rc::new(self.expression()),
+            then_b: self.statement(),
+            else_b: if self.match_t(&[TokenType::Else]) {
+                Some(self.statement())
+            } else {
+                None
+            },
+        }
+    }
+
+    fn while_stmt(&mut self) -> WhileStmt {
+        // assuming while is already consumed
+        WhileStmt {
+            condition: Rc::new(self.expression()),
+            body: self.block_stmt(false),
         }
     }
 

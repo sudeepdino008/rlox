@@ -17,8 +17,9 @@ primary        → NUMBER | STRING | "true" | "false" | "nil"
 program -> declaration* EOF ;
 declaration -> varDecl | statement;
 varDecl -> "var" identifier ( "=" expression )? ";";
-statement -> exprStmt | printStmt | block | ifStmt;
-ifStmt -> "if" expression statement ("else" statement)? ;
+statement -> exprStmt | printStmt | block | ifStmt | whileStmt;
+ifStmt -> "if" expression statement ("else" statement)? ; // different from lox in that expression doesn't need to be bracketed
 block -> "{" declaration* "}"
 exprStmt -> expression ";" ;
 printStmt -> "print" expression ";" ;
+whileStmt -> "while" expression block;   // slight different from lox, expression doesn't need to be parathesized; and it's a block instead of statement (different compared to if)

@@ -26,6 +26,7 @@ pub enum StmtType {
     Print,
     Block,
     If,
+    While,
 }
 pub trait StmtT: DeclT {
     fn stmt_type(&self) -> StmtType;
@@ -161,6 +162,17 @@ pub struct IfStmt {
 impl StmtT for IfStmt {
     fn stmt_type(&self) -> StmtType {
         StmtType::If
+    }
+}
+
+pub struct WhileStmt {
+    pub condition: ExprRef,
+    pub body: BlockStmt,
+}
+
+impl StmtT for WhileStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::While
     }
 }
 

@@ -146,11 +146,18 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
             TokenType::BangEqual => Bool(leftv != rightv),
             TokenType::Equal => todo!(),
             TokenType::EqualEqual => Bool(leftv == rightv),
-            TokenType::Less => todo!(),
+            TokenType::Less => {
+                if let Number(left) = leftv {
+                    if let Number(right) = rightv {
+                        return Bool(left < right);
+                    }
+                }
+                self.error(&bin.operator.ttype, "invalid operands for less")
+            }
             TokenType::LessEqual => {
                 if let Number(left) = leftv {
                     if let Number(right) = rightv {
-                        return Bool(left >= right);
+                        return Bool(left <= right);
                     }
                 }
                 self.error(&bin.operator.ttype, "invalid operands for less-equal")
@@ -270,6 +277,20 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
                 "invalid operands for logical operator",
             );
         }
+    }
+
+    fn visit_while_stmt(&mut self, stmt: &ast::WhileStmt) -> IResult {
+        let condition_val = self.visit_expression(&stmt.condition);
+        if let Bool(condition) = condition_val {
+            if condition {
+                self.visit_block_stmt(&stmt.body);
+                self.visit_while_stmt(stmt);
+            } else {
+                return None;
+            }
+        }
+
+        None
     }
 }
 
