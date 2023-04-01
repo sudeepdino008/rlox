@@ -1,11 +1,10 @@
 use std::{
-    cell::RefCell,
     fs::{self, File},
     io::{BufReader, Cursor, Read, Seek},
-    rc::Rc,
 };
 
 use interpreter::Interpreter;
+use rustcore::Shared;
 use scanner::Scanner;
 
 struct RunParams {
@@ -38,7 +37,7 @@ fn if_tests() {
 fn compare_interpreter_runs(input_program: &str, expected_out_file: &str, params: &RunParams) {
     let expected_out = fs::read_to_string(expected_out_file).unwrap();
     let scanner = Scanner::build_scanner(BufReader::new(File::open(input_program).unwrap()));
-    let cursor = Rc::new(RefCell::new(Cursor::new(Vec::new())));
+    let cursor = Shared::new(Cursor::new(Vec::new()));
 
     let mut interpreter = Interpreter::new_with_out(cursor.clone());
     let result = crate::execute(&mut interpreter, scanner);

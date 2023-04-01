@@ -1,13 +1,13 @@
 mod environment;
 mod result;
 
-use std::cell::RefCell;
 use std::io::{stdout, Stdout, Write};
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 
 use environment::{Environment, EnvironmentRef};
 use parser::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
+use rustcore::Shared;
 use scanner::tokens::TokenType;
 
 use result::IResult;
@@ -16,7 +16,7 @@ use result::IResult::{Bool, None, Number, String};
 static INTERPRETER_ERR_TAG: &str = "INTERPRETER_ERROR:";
 pub struct Interpreter<T: Write> {
     environment: EnvironmentRef,
-    ostream: Rc<RefCell<T>>,
+    ostream: Shared<T>,
 }
 
 impl<T: Write> Visitor<IResult> for Interpreter<T> {
@@ -195,7 +195,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         let value = self.visit_expression(&stmt.value);
         //self.ostream.by_ref()
         //let mut ss = self.ostream;
-        match writeln!(self.ostream.as_ref().borrow_mut(), "{}", value) {
+        match writeln!(self.ostream.borrow_mut(), "{}", value) {
             Ok(_) => {}
             Err(err) => self.error(
                 &TokenType::Print,
@@ -257,12 +257,12 @@ impl Default for Interpreter<Stdout> {
 
 impl Interpreter<Stdout> {
     fn new() -> Interpreter<Stdout> {
-        Interpreter::new_with_out(Rc::new(RefCell::new(stdout())))
+        Interpreter::new_with_out(Shared::new(stdout()))
     }
 }
 
 impl<T: Write> Interpreter<T> {
-    pub fn new_with_out(ostream: Rc<RefCell<T>>) -> Interpreter<T> {
+    pub fn new_with_out(ostream: Shared<T>) -> Interpreter<T> {
         Interpreter {
             environment: Environment::new(),
             ostream,
