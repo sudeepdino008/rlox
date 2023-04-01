@@ -1,4 +1,7 @@
-use crate::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
+use crate::{
+    ast::{self, Binary, Grouping, Literal, Unary},
+    utils::Visitor,
+};
 use scanner::tokens::TokenType;
 
 pub struct AstPrinter {}
@@ -89,6 +92,15 @@ impl Visitor<String> for AstPrinter {
             exprs.push("\nend\n".to_string());
         }
 
+        self.parenthesize(exprs)
+    }
+
+    fn visit_logical(&mut self, logic: &ast::Logical) -> String {
+        let exprs = vec![
+            self.visit_expression(&logic.left),
+            logic.operator.lexeme.clone(),
+            self.visit_expression(&logic.right),
+        ];
         self.parenthesize(exprs)
     }
 }

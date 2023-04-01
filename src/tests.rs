@@ -33,6 +33,8 @@ fn if_tests() {
     compare_interpreter_runs("data/4/input_err.rl", "data/4/expected_err.txt", params);
 }
 
+// tests for logical operators
+
 #[allow(dead_code)]
 fn compare_interpreter_runs(input_program: &str, expected_out_file: &str, params: &RunParams) {
     let expected_out = fs::read_to_string(expected_out_file).unwrap();

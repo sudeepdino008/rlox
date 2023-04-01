@@ -6,7 +6,8 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 
 use environment::{Environment, EnvironmentRef};
-use parser::ast::{self, Binary, Grouping, Literal, Unary, Visitor};
+use parser::ast::{self, Binary, Grouping, Literal, Unary};
+use parser::utils::Visitor;
 use rustcore::Shared;
 use scanner::tokens::TokenType;
 
@@ -246,6 +247,29 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         }
 
         None
+    }
+
+    fn visit_logical(&mut self, logic: &ast::Logical) -> IResult {
+        let leftv = self.visit_expression(&logic.left);
+
+        if let Bool(leftvb) = leftv {
+            if leftvb == (logic.operator.ttype == TokenType::Or) {
+                // short circuit
+                return Bool(leftvb);
+            } else {
+                let rightv = self.visit_expression(&logic.right);
+                if let Bool(rightvb) = rightv {
+                    return Bool(rightvb);
+                } else {
+                    self.error(&TokenType::Or, "condition expression should return boolean")
+                }
+            }
+        } else {
+            self.error(
+                &logic.operator.ttype,
+                "invalid operands for logical operator",
+            );
+        }
     }
 }
 

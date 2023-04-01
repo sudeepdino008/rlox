@@ -1,14 +1,15 @@
 pub mod ast;
 pub mod printer;
+pub mod utils;
 
 use std::{
     panic::{self, AssertUnwindSafe},
     rc::Rc,
 };
 
-use crate::ast::{
-    expr_utils::wrap_expr, Binary, ExprStmt, Expression, Grouping, Literal, PrintStmt, Unary,
-};
+use crate::ast::{Binary, ExprStmt, Expression, Grouping, Literal, Logical, PrintStmt, Unary};
+
+use utils::expr_utils::wrap_expr;
 
 use ast::{Assign, BlockStmt, DeclRef, IfStmt, StmtDecl, VarDecl};
 use scanner::tokens::{TokenRef, TokenType};
@@ -149,7 +150,15 @@ impl Parser {
             self.retreat();
         }
 
-        self.equality()
+        self.logic_or()
+    }
+
+    fn logic_or(&mut self) -> Expression {
+        self.logic_break(|p: &mut Parser| p.logic_and(), &[TokenType::Or])
+    }
+
+    fn logic_and(&mut self) -> Expression {
+        self.logic_break(|p: &mut Parser| p.equality(), &[TokenType::And])
     }
 
     fn equality(&mut self) -> Expression {
@@ -228,6 +237,26 @@ impl Parser {
             let operator = self.previous();
             let right_expr = gen(self);
             expr = wrap_expr(Binary {
+                left: expr,
+                operator,
+                right: right_expr,
+            });
+        }
+
+        expr
+    }
+
+    fn logic_break(
+        &mut self,
+        gen: fn(&mut Parser) -> Expression,
+        token_types: &[TokenType],
+    ) -> Expression {
+        let mut expr = gen(self);
+
+        while self.match_t(token_types) {
+            let operator = self.previous();
+            let right_expr = gen(self);
+            expr = wrap_expr(Logical {
                 left: expr,
                 operator,
                 right: right_expr,
