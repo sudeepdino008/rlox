@@ -11,6 +11,7 @@ pub enum ElementType {
     Binary,
     Assign,
     Logical,
+    Call,
 }
 
 pub trait ExprT: AsAny {
@@ -27,6 +28,7 @@ pub enum StmtType {
     Block,
     If,
     While,
+    Break,
 }
 pub trait StmtT: DeclT {
     fn stmt_type(&self) -> StmtType;
@@ -41,6 +43,7 @@ pub struct Declaration {
 pub enum DeclType {
     Var,
     Stmt,
+    Fun,
 }
 
 pub trait DeclT: AsAny {
@@ -124,6 +127,31 @@ impl From<Rc<dyn DeclT>> for StmtDecl {
     }
 }
 
+pub struct FunDecl {
+    pub identifier: TokenRef,
+    pub params: Vec<TokenRef>,
+    pub body: BlockStmt,
+}
+
+impl Clone for FunDecl {
+    fn clone(&self) -> Self {
+        Self {
+            identifier: self.identifier.clone(),
+            params: self.params.clone(),
+            body: self.body.clone(),
+        }
+    }
+}
+
+impl DeclT for FunDecl {
+    fn decl_type(&self) -> DeclType {
+        DeclType::Fun
+    }
+    fn as_decl_type(self: Rc<Self>) -> Rc<dyn DeclT> {
+        self
+    }
+}
+
 // statements
 pub struct ExprStmt {
     pub value: ExprRef,
@@ -145,6 +173,14 @@ impl StmtT for PrintStmt {
 
 pub struct BlockStmt {
     pub declarations: Rc<Vec<DeclRef>>,
+}
+
+impl Clone for BlockStmt {
+    fn clone(&self) -> Self {
+        Self {
+            declarations: self.declarations.clone(),
+        }
+    }
 }
 
 impl StmtT for BlockStmt {
@@ -173,6 +209,14 @@ pub struct WhileStmt {
 impl StmtT for WhileStmt {
     fn stmt_type(&self) -> StmtType {
         StmtType::While
+    }
+}
+
+pub struct BreakStmt;
+
+impl StmtT for BreakStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::Break
     }
 }
 
@@ -213,6 +257,18 @@ pub struct Unary {
 impl ExprT for Unary {
     fn element_type(&self) -> ElementType {
         ElementType::Unary
+    }
+}
+
+// call
+pub struct Call {
+    pub callee: Expression,
+    pub arguments: Vec<Expression>,
+}
+
+impl ExprT for Call {
+    fn element_type(&self) -> ElementType {
+        ElementType::Call
     }
 }
 

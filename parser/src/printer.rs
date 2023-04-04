@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     ast::{self, Binary, Grouping, Literal, Unary},
     utils::Visitor,
@@ -112,6 +114,36 @@ impl Visitor<String> for AstPrinter {
             self.visit_block_stmt(&stmt.body),
             "\n{\n".to_string(),
         ];
+        self.parenthesize(exprs)
+    }
+
+    fn visit_break_stmt(&mut self, _stmt: &ast::BreakStmt) -> String {
+        self.parenthesize(vec!["break".to_string()])
+    }
+
+    fn visit_call(&mut self, call: &ast::Call) -> String {
+        let mut exprs = vec![self.visit_expression(&call.callee), "(".to_string()];
+        for arg in call.arguments.iter() {
+            exprs.push(self.visit_expression(arg));
+        }
+        exprs.push(")".to_string());
+        self.parenthesize(exprs)
+    }
+
+    fn visit_fun_decl(&mut self, decl: Rc<ast::FunDecl>) -> String {
+        let mut exprs = vec![
+            "fun".to_string(),
+            decl.identifier.lexeme.clone(),
+            "(".to_string(),
+        ];
+        for param in decl.params.iter() {
+            exprs.push(param.lexeme.clone());
+        }
+
+        exprs.push(")".to_string());
+        exprs.push("{\n".to_string());
+        exprs.push(self.visit_block_stmt(&decl.body));
+        exprs.push("\n}".to_string());
         self.parenthesize(exprs)
     }
 }

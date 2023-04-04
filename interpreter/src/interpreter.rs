@@ -1,13 +1,18 @@
+mod callable;
 mod environment;
+mod foreignf;
 mod result;
 
 use std::io::{stdout, Stdout, Write};
+
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 
+use callable::{EnvironmentAware, LoxCallable, VisitorEnvironmentAware};
 use environment::{Environment, EnvironmentRef};
-use parser::ast::{self, Binary, Grouping, Literal, Unary};
+use parser::ast::{self, Binary, FunDecl, Grouping, Literal, Unary};
 use parser::utils::Visitor;
+
 use rustcore::Shared;
 use scanner::tokens::TokenType;
 
@@ -15,12 +20,108 @@ use result::IResult;
 use result::IResult::{Bool, None, Number, String};
 
 static INTERPRETER_ERR_TAG: &str = "INTERPRETER_ERROR:";
+
 pub struct Interpreter<T: Write> {
     environment: EnvironmentRef,
     ostream: Shared<T>,
 }
 
+impl<T: Write> EnvironmentAware for Interpreter<T> {
+    fn get_environment(&self) -> EnvironmentRef {
+        self.environment.clone()
+    }
+
+    fn set_environment(&mut self, environment: EnvironmentRef) {
+        self.environment = environment;
+    }
+}
+
+impl<T: Write> VisitorEnvironmentAware for Interpreter<T> {}
+
 impl<T: Write> Visitor<IResult> for Interpreter<T> {
+    fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
+        if decl.rhs.is_none() {
+            self.environment
+                .borrow_mut()
+                .declare(&decl.identifier.lexeme);
+        } else {
+            let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
+            self.environment
+                .borrow_mut()
+                .declare_and_init(&decl.identifier.lexeme, rhs_result);
+        }
+
+        None
+    }
+
+    fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> IResult {
+        let value = self.visit_expression(&stmt.value);
+        //self.ostream.by_ref()
+        //let mut ss = self.ostream;
+        match writeln!(self.ostream.borrow_mut(), "{}", value) {
+            Ok(_) => {}
+            Err(err) => self.error(
+                &TokenType::Print,
+                format!("failed to write to output stream: {:?}", err).as_str(),
+            ),
+        }
+        None
+    }
+
+    fn visit_block_stmt(&mut self, stmt: &ast::BlockStmt) -> IResult {
+        let parent: EnvironmentRef = self.environment.clone();
+        self.environment = Environment::new_with_parent(parent.clone());
+        let mut result = None;
+
+        for decl in stmt.declarations.iter() {
+            if self.visit_declaration(decl.clone()) == IResult::Break {
+                result = IResult::Break;
+                break;
+            }
+        }
+
+        self.environment = parent;
+
+        result
+    }
+
+    fn visit_if_stmt(&mut self, stmt: &ast::IfStmt) -> IResult {
+        let condition_val = self.visit_expression(&stmt.condition);
+        if let Bool(condition) = condition_val {
+            return if condition {
+                self.visit_statement(&stmt.then_b)
+            } else if let Some(else_b) = &stmt.else_b {
+                self.visit_statement(else_b)
+            } else {
+                None
+            };
+        } else {
+            self.error(&TokenType::If, "condition expression should return boolean")
+        }
+    }
+
+    fn visit_while_stmt(&mut self, stmt: &ast::WhileStmt) -> IResult {
+        let condition_val = self.visit_expression(&stmt.condition);
+        if let Bool(condition) = condition_val {
+            if condition {
+                if self.visit_block_stmt(&stmt.body) != IResult::Break {
+                    self.visit_while_stmt(stmt);
+                }
+            }
+        } else {
+            self.error(
+                &TokenType::While,
+                "condition expression should return boolean",
+            )
+        }
+
+        None
+    }
+
+    fn visit_break_stmt(&mut self, _stmt: &ast::BreakStmt) -> IResult {
+        IResult::Break
+    }
+
     fn visit_literal(&mut self, lit: &Literal) -> IResult {
         match &lit.value.ttype {
             TokenType::String(contents) => String(Rc::new(contents.to_string())),
@@ -182,78 +283,8 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
             TokenType::Var => todo!(),
             TokenType::While => todo!(),
             TokenType::Eof => todo!(),
+            TokenType::Break => todo!(),
         }
-    }
-
-    fn visit_assign(&mut self, assign: &ast::Assign) -> IResult {
-        let identifier = assign.identifier.lexeme.as_str();
-        if self.environment.is_binded(identifier) {
-            let rhs = self.visit_expression(&assign.value);
-            self.environment.borrow_mut().assign(identifier, rhs);
-            None
-        } else {
-            self.error(
-                &assign.identifier.ttype,
-                format!("{} is not binded", identifier).as_str(),
-            );
-        }
-    }
-
-    fn visit_print_stmt(&mut self, stmt: &ast::PrintStmt) -> IResult {
-        let value = self.visit_expression(&stmt.value);
-        //self.ostream.by_ref()
-        //let mut ss = self.ostream;
-        match writeln!(self.ostream.borrow_mut(), "{}", value) {
-            Ok(_) => {}
-            Err(err) => self.error(
-                &TokenType::Print,
-                format!("failed to write to output stream: {:?}", err).as_str(),
-            ),
-        }
-        None
-    }
-
-    fn visit_var_decl(&mut self, decl: &ast::VarDecl) -> IResult {
-        if decl.rhs.is_none() {
-            self.environment
-                .borrow_mut()
-                .declare(&decl.identifier.lexeme);
-        } else {
-            let rhs_result = self.visit_expression(decl.rhs.as_ref().unwrap().as_ref());
-            self.environment
-                .borrow_mut()
-                .declare_and_init(&decl.identifier.lexeme, rhs_result);
-        }
-
-        None
-    }
-
-    fn visit_block_stmt(&mut self, stmt: &ast::BlockStmt) -> IResult {
-        let parent: EnvironmentRef = self.environment.clone();
-        self.environment = Environment::new_with_parent(parent.clone());
-
-        for decl in stmt.declarations.iter() {
-            self.visit_declaration(decl.clone());
-        }
-
-        self.environment = parent;
-
-        None
-    }
-
-    fn visit_if_stmt(&mut self, stmt: &ast::IfStmt) -> IResult {
-        let condition_val = self.visit_expression(&stmt.condition);
-        if let Bool(condition) = condition_val {
-            if condition {
-                self.visit_statement(&stmt.then_b);
-            } else if let Some(else_b) = &stmt.else_b {
-                self.visit_statement(else_b);
-            }
-        } else {
-            self.error(&TokenType::If, "condition expression should return boolean")
-        }
-
-        None
     }
 
     fn visit_logical(&mut self, logic: &ast::Logical) -> IResult {
@@ -279,18 +310,77 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         }
     }
 
-    fn visit_while_stmt(&mut self, stmt: &ast::WhileStmt) -> IResult {
-        let condition_val = self.visit_expression(&stmt.condition);
-        if let Bool(condition) = condition_val {
-            if condition {
-                self.visit_block_stmt(&stmt.body);
-                self.visit_while_stmt(stmt);
-            } else {
-                return None;
-            }
+    fn visit_assign(&mut self, assign: &ast::Assign) -> IResult {
+        let identifier = assign.identifier.lexeme.as_str();
+        if self.environment.is_binded(identifier) {
+            let rhs = self.visit_expression(&assign.value);
+            self.environment.borrow_mut().assign(identifier, rhs);
+            None
+        } else {
+            self.error(
+                &assign.identifier.ttype,
+                format!("{} is not binded", identifier).as_str(),
+            );
         }
+    }
 
-        None
+    fn visit_call(&mut self, call: &ast::Call) -> IResult {
+        let callee = self.visit_expression(&call.callee);
+        if let IResult::Callable(arg0) = callee {
+            let arguments = call
+                .arguments
+                .iter()
+                .map(|a| self.visit_expression(a))
+                .collect::<Vec<IResult>>();
+            if arguments.len() != arg0.arity {
+                self.error(
+                    &TokenType::Identifier,
+                    format!(
+                        "expected {} arguments but got {}",
+                        arg0.arity,
+                        arguments.len()
+                    )
+                    .as_str(),
+                );
+            }
+            (arg0.borrow_mut().call)(self as &mut dyn VisitorEnvironmentAware, arguments)
+        } else {
+            self.error(
+                &TokenType::Identifier,
+                format!("{} is not callable", callee).as_str(),
+            );
+        }
+    }
+
+    fn visit_fun_decl(&mut self, decl: Rc<FunDecl>) -> IResult {
+        // variables and function names share the same namespace
+        let identifier = decl.identifier.lexeme.as_str();
+        let decl = decl.clone();
+        let callable = LoxCallable {
+            arity: decl.params.len(),
+            call: Box::new(move |visitor, params: Vec<IResult>| {
+                // bind the variables
+                // call the function body
+                // return the result
+                let parent = visitor.get_environment();
+                visitor.set_environment(Environment::new_with_parent(parent.clone()));
+
+                let mut viter = params.iter();
+                for param in decl.params.iter() {
+                    visitor
+                        .get_environment()
+                        .declare_and_init(param.lexeme.as_str(), viter.next().unwrap().clone())
+                }
+
+                let result = visitor.visit_block_stmt(&decl.body);
+                visitor.set_environment(parent);
+                result
+            }),
+        };
+        self.environment
+            .borrow_mut()
+            .declare_and_init(identifier, IResult::Callable(Shared::new(callable)));
+        todo!()
     }
 }
 

@@ -50,6 +50,7 @@ pub enum TokenType {
     True,
     Var,
     While,
+    Break,
 
     Eof,
 }
@@ -80,6 +81,7 @@ static RESERVED_KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "true" => TokenType::True,
     "var" => TokenType::Var,
     "while" => TokenType::While,
+    "break" => TokenType::Break,
 };
 
 pub fn get_reserved_keyword(keyword: &str) -> Option<TokenType> {

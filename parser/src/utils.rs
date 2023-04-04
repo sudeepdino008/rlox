@@ -1,18 +1,32 @@
+use std::rc::Rc;
+
 use crate::ast::{
-    Assign, Binary, BlockStmt, DeclRef, ElementType, ExprStmt, Expression, Grouping, IfStmt,
-    Literal, Logical, PrintStmt, StmtDecl, StmtType, Unary, VarDecl, WhileStmt,
+    Assign, Binary, BlockStmt, BreakStmt, Call, DeclRef, DeclType, ElementType, ExprStmt,
+    Expression, FunDecl, Grouping, IfStmt, Literal, Logical, PrintStmt, StmtDecl, StmtType, Unary,
+    VarDecl, WhileStmt,
 };
 
 // visitor trait
 pub trait Visitor<Ret> {
     fn visit_declaration(&mut self, decl: DeclRef) -> Ret {
-        if decl.is_var() {
-            self.visit_var_decl(decl.as_ref().as_any().downcast_ref::<VarDecl>().unwrap())
-        } else {
-            self.visit_statement(decl.as_ref().as_any().downcast_ref::<StmtDecl>().unwrap())
+        match decl.decl_type() {
+            DeclType::Var => {
+                self.visit_var_decl(decl.as_ref().as_any().downcast_ref::<VarDecl>().unwrap())
+            }
+            DeclType::Stmt => {
+                self.visit_statement(decl.as_ref().as_any().downcast_ref::<StmtDecl>().unwrap())
+            }
+            DeclType::Fun => self.visit_fun_decl(Rc::new(
+                decl.as_ref()
+                    .as_any()
+                    .downcast_ref::<FunDecl>()
+                    .unwrap()
+                    .to_owned(),
+            )),
         }
     }
     fn visit_var_decl(&mut self, decl: &VarDecl) -> Ret;
+    fn visit_fun_decl(&mut self, decl: Rc<FunDecl>) -> Ret;
     fn visit_statement(&mut self, stmt: &StmtDecl) -> Ret {
         match stmt.stmt.stmt_type() {
             StmtType::Expression => {
@@ -28,6 +42,9 @@ pub trait Visitor<Ret> {
             StmtType::While => {
                 self.visit_while_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
             }
+            StmtType::Break => {
+                self.visit_break_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
+            }
         }
     }
     fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Ret;
@@ -37,6 +54,7 @@ pub trait Visitor<Ret> {
     fn visit_block_stmt(&mut self, stmt: &BlockStmt) -> Ret;
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Ret;
     fn visit_while_stmt(&mut self, stmt: &WhileStmt) -> Ret;
+    fn visit_break_stmt(&mut self, stmt: &BreakStmt) -> Ret;
 
     fn visit_expression(&mut self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();
@@ -57,6 +75,7 @@ pub trait Visitor<Ret> {
             ElementType::Logical => {
                 self.visit_logical(vall.as_ref().as_any().downcast_ref().unwrap())
             }
+            ElementType::Call => self.visit_call(vall.as_ref().as_any().downcast_ref().unwrap()),
         };
     }
 
@@ -66,6 +85,7 @@ pub trait Visitor<Ret> {
     fn visit_binary(&mut self, bin: &Binary) -> Ret;
     fn visit_logical(&mut self, logic: &Logical) -> Ret;
     fn visit_assign(&mut self, assign: &Assign) -> Ret;
+    fn visit_call(&mut self, call: &Call) -> Ret;
 }
 
 pub mod expr_utils {

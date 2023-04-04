@@ -7,11 +7,13 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast::{Binary, ExprStmt, Expression, Grouping, Literal, Logical, PrintStmt, Unary};
+use crate::ast::{
+    Binary, Call, ExprStmt, Expression, Grouping, Literal, Logical, PrintStmt, Unary,
+};
 
 use utils::expr_utils::wrap_expr;
 
-use ast::{Assign, BlockStmt, DeclRef, IfStmt, StmtDecl, VarDecl, WhileStmt};
+use ast::{Assign, BlockStmt, BreakStmt, DeclRef, FunDecl, IfStmt, StmtDecl, VarDecl, WhileStmt};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
@@ -59,8 +61,47 @@ impl Parser {
     fn declaration(&mut self) -> DeclRef {
         if self.match_t(&[TokenType::Var]) {
             Rc::new(self.var_declaration())
+        } else if self.match_t(&[TokenType::Fun]) {
+            Rc::new(self.fun_declaration())
         } else {
             Rc::new(self.statement()) //.as_decl_type()
+        }
+    }
+
+    fn fun_declaration(&mut self) -> FunDecl {
+        // 'fun' is already matched
+        if self.match_t(&[TokenType::Identifier]) {
+            let identifier = self.previous();
+            self.consume(&TokenType::LeftParen, "expected '(' after function name");
+            let mut params = Vec::new();
+            if !self.match_t(&[TokenType::RightParen]) {
+                loop {
+                    if params.len() >= 255 {
+                        self.error("cannot have more than 255 parameters");
+                    }
+                    if self.match_t(&[TokenType::Identifier]) {
+                        params.push(self.previous());
+                    }
+                    if self.match_t(&[TokenType::Comma]) {
+                        continue;
+                    }
+                    // comma not found, should end with right paren
+                    self.consume(
+                        &TokenType::RightParen,
+                        "expected paranthesis after parameters",
+                    );
+                    break;
+                }
+            }
+
+            let bstmt = self.block_stmt(false);
+            FunDecl {
+                identifier,
+                params,
+                body: bstmt,
+            }
+        } else {
+            self.error("expected identifier after 'fun'")
         }
     }
 
@@ -88,10 +129,18 @@ impl Parser {
                 Rc::new(self.if_stmt())
             } else if self.match_t(&[TokenType::While]) {
                 Rc::new(self.while_stmt())
+            } else if self.match_t(&[TokenType::Break]) {
+                Rc::new(self.break_stmt())
             } else {
                 Rc::new(self.expr_stmt())
             },
         }
+    }
+
+    fn break_stmt(&mut self) -> BreakStmt {
+        // break has been matched
+        self.consume(&TokenType::Semicolon, "semicolon missing");
+        BreakStmt {}
     }
 
     fn print_stmt(&mut self) -> PrintStmt {
@@ -209,8 +258,39 @@ impl Parser {
             let expr = self.unary();
             wrap_expr(Unary { operator, expr })
         } else {
-            self.primary()
+            self.call()
         }
+    }
+
+    fn call(&mut self) -> Expression {
+        let mut expr = self.primary();
+        if self.match_t(&[TokenType::LeftBrace]) {
+            let arguments = self.arguments();
+            self.consume(&TokenType::RightBrace, "expected ')' after arguments");
+            expr = wrap_expr(Call {
+                callee: expr,
+                arguments,
+            });
+        }
+
+        expr
+    }
+
+    fn arguments(&mut self) -> Vec<Expression> {
+        let mut args = Vec::new();
+        if !self.match_t(&[TokenType::RightBrace]) {
+            loop {
+                args.push(self.expression());
+                if !self.match_t(&[TokenType::Comma]) {
+                    break;
+                }
+                if args.len() > 255 {
+                    self.error("too many arguments");
+                }
+            }
+        }
+
+        args
     }
 
     fn primary(&mut self) -> Expression {
