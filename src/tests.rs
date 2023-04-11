@@ -33,8 +33,102 @@ fn if_tests() {
     compare_interpreter_runs("data/4/input_err.rl", "data/4/expected_err.txt", params);
 }
 
+#[test]
+fn logical_operators() {
+    let params = &RunParams { should_fail: false };
+    compare_interpreter_runs("data/5/input.rl", "data/5/expected.txt", params);
+}
+
+#[test]
+fn while_loop() {
+    let mut params = &mut RunParams { should_fail: false };
+    compare_interpreter_runs("data/6/input.rl", "data/6/expected.txt", params);
+
+    params.should_fail = true;
+    compare_interpreter_runs("data/6/input_err.rl", "data/6/expected_err.txt", params);
+}
+
+#[test]
+fn test_break() {
+    let mut params = &mut RunParams { should_fail: false };
+    compare_interpreter_runs("data/7/input.rl", "data/7/expected.txt", params);
+    compare_interpreter_runs(
+        "data/7/input_nested.rl",
+        "data/7/expected_nested.txt",
+        params,
+    );
+
+    params.should_fail = true;
+    compare_interpreter_runs("data/7/input_err.rl", "data/7/expected_err.txt", params);
+}
+
+// #[test]
+// fn functions() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/7/input.rl", "data/7/expected.txt", params);
+// }
+
+// #[test]
+// fn recursion() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/8/input.rl", "data/8/expected.txt", params);
+// }
+
+// #[test]
+// fn class() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/9/input.rl", "data/9/expected.txt", params);
+// }
+
+// #[test]
+// fn inheritance() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/10/input.rl", "data/10/expected.txt", params);
+// }
+
+// #[test]
+// fn methods() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/11/input.rl", "data/11/expected.txt", params);
+// }
+
+// #[test]
+// fn init() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/12/input.rl", "data/12/expected.txt", params);
+// }
+
+// #[test]
+// fn getter() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/13/input.rl", "data/13/expected.txt", params);
+// }
+
+// #[test]
+// fn setter() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/14/input.rl", "data/14/expected.txt", params);
+// }
+
+// #[test]
+// fn this() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/15/input.rl", "data/15/expected.txt", params);
+// }
+
+// #[test]
+// fn super_() {
+//     let params = &RunParams { should_fail: false };
+//     compare_interpreter_runs("data/16/input.rl", "data/16/expected.txt", params);
+// }
+
+// tests for if statements
+// tests for out of scope errors
+// tests for if statements
+
 // tests for logical operators
-// while loop
+// while loop (with breaks)
+// functions and calls
 
 #[allow(dead_code)]
 fn compare_interpreter_runs(input_program: &str, expected_out_file: &str, params: &RunParams) {

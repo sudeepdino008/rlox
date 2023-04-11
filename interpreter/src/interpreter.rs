@@ -408,8 +408,9 @@ impl<T: Write> Interpreter<T> {
         let mut result = IResult::None;
         for decl in decls {
             match self.interpret_decl(decl) {
-                Ok(val) => result = val,
+                Ok(IResult::Break) => return Err("break outside loop".to_string()),
                 Err(err) => return Err(err),
+                Ok(val) => result = val,
             }
         }
         Ok(result)
@@ -426,7 +427,13 @@ impl<T: Write> Interpreter<T> {
             prev(info);
         }));
 
-        let result = panic::catch_unwind(AssertUnwindSafe(|| self.visit_declaration(decl)));
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            let result = self.visit_declaration(decl);
+            if let IResult::Break = result {
+                self.error(&TokenType::Break, "break outside loop");
+            }
+            result
+        }));
         if let Ok(exp) = result {
             Ok(exp)
         } else {

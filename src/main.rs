@@ -79,7 +79,7 @@ fn execute<T: Read + Seek, I: Write>(
     let mut tokens = Vec::new();
     for lexeme in scanner {
         if lexeme.is_err() {
-            eprintln!("error in inpur");
+            eprintln!("error in input");
             return Err(lexeme.unwrap_err());
         }
         tokens.push(Rc::new(lexeme.ok().unwrap()));
