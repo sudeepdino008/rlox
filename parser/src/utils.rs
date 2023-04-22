@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use crate::ast::{
     Assign, Binary, BlockStmt, BreakStmt, Call, DeclRef, DeclType, ElementType, ExprStmt,
-    Expression, FunDecl, Grouping, IfStmt, Literal, Logical, PrintStmt, StmtDecl, StmtType, Unary,
-    VarDecl, WhileStmt,
+    Expression, FunDecl, Grouping, IfStmt, Literal, Logical, PrintStmt, ReturnStmt, StmtDecl,
+    StmtType, Unary, VarDecl, WhileStmt,
 };
 
 // visitor trait
@@ -45,6 +45,9 @@ pub trait Visitor<Ret> {
             StmtType::Break => {
                 self.visit_break_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
             }
+            StmtType::Return => {
+                self.visit_return_stmt(stmt.stmt.as_ref().as_any().downcast_ref().unwrap())
+            }
         }
     }
     fn visit_print_stmt(&mut self, stmt: &PrintStmt) -> Ret;
@@ -55,6 +58,7 @@ pub trait Visitor<Ret> {
     fn visit_if_stmt(&mut self, stmt: &IfStmt) -> Ret;
     fn visit_while_stmt(&mut self, stmt: &WhileStmt) -> Ret;
     fn visit_break_stmt(&mut self, stmt: &BreakStmt) -> Ret;
+    fn visit_return_stmt(&mut self, stmt: &ReturnStmt) -> Ret;
 
     fn visit_expression(&mut self, expr: &Expression) -> Ret {
         let vall = expr.value.clone();

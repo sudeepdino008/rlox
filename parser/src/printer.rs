@@ -146,6 +146,14 @@ impl Visitor<String> for AstPrinter {
         exprs.push("\n}".to_string());
         self.parenthesize(exprs)
     }
+
+    fn visit_return_stmt(&mut self, stmt: &ast::ReturnStmt) -> String {
+        let mut exprs = vec!["<return>".to_string()];
+        if let Some(expr) = &stmt.value {
+            exprs.push(self.visit_expression(expr));
+        }
+        self.parenthesize(exprs)
+    }
 }
 
 impl AstPrinter {

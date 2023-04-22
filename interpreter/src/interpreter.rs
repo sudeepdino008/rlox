@@ -74,9 +74,20 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         let mut result = None;
 
         for decl in stmt.declarations.iter() {
-            if self.visit_declaration(decl.clone()) == IResult::Break {
-                result = IResult::Break;
-                break;
+            let decl_result = self.visit_declaration(decl.clone());
+            match decl_result {
+                IResult::Break => {
+                    result = IResult::Break;
+                    break;
+                }
+                IResult::Return(val) => {
+                    result = val.as_ref().clone();
+                    break;
+                }
+
+                _ => {
+                    panic!("unexpected result from block statement");
+                }
             }
         }
 
@@ -380,7 +391,16 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         self.environment
             .borrow_mut()
             .declare_and_init(identifier, IResult::Callable(Shared::new(callable)));
-        todo!()
+
+        None
+    }
+
+    fn visit_return_stmt(&mut self, stmt: &ast::ReturnStmt) -> IResult {
+        IResult::Return(Rc::new(if let Some(value) = &stmt.value {
+            self.visit_expression(&value)
+        } else {
+            None
+        }))
     }
 }
 

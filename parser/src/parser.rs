@@ -13,7 +13,10 @@ use crate::ast::{
 
 use utils::expr_utils::wrap_expr;
 
-use ast::{Assign, BlockStmt, BreakStmt, DeclRef, FunDecl, IfStmt, StmtDecl, VarDecl, WhileStmt};
+use ast::{
+    Assign, BlockStmt, BreakStmt, DeclRef, FunDecl, IfStmt, ReturnStmt, StmtDecl, VarDecl,
+    WhileStmt,
+};
 use scanner::tokens::{TokenRef, TokenType};
 
 static PARSER_ERR_TAG: &str = "PARSER_ERROR:";
@@ -72,9 +75,9 @@ impl Parser {
         // 'fun' is already matched
         if self.match_t(&[TokenType::Identifier]) {
             let identifier = self.previous();
-            self.consume(&TokenType::LeftParen, "expected '(' after function name");
+            self.consume(&TokenType::LeftBrace, "expected '(' after function name");
             let mut params = Vec::new();
-            if !self.match_t(&[TokenType::RightParen]) {
+            if !self.match_t(&[TokenType::RightBrace]) {
                 loop {
                     if params.len() >= 255 {
                         self.error("cannot have more than 255 parameters");
@@ -85,9 +88,9 @@ impl Parser {
                     if self.match_t(&[TokenType::Comma]) {
                         continue;
                     }
-                    // comma not found, should end with right paren
+                    // comma not found, should end with right brace
                     self.consume(
-                        &TokenType::RightParen,
+                        &TokenType::RightBrace,
                         "expected paranthesis after parameters",
                     );
                     break;
@@ -131,6 +134,8 @@ impl Parser {
                 Rc::new(self.while_stmt())
             } else if self.match_t(&[TokenType::Break]) {
                 Rc::new(self.break_stmt())
+            } else if self.match_t(&[TokenType::Return]) {
+                Rc::new(self.return_stmt())
             } else {
                 Rc::new(self.expr_stmt())
             },
@@ -190,6 +195,17 @@ impl Parser {
         WhileStmt {
             condition: Rc::new(self.expression()),
             body: self.block_stmt(false),
+        }
+    }
+
+    fn return_stmt(&mut self) -> ReturnStmt {
+        // return already consumed
+        ReturnStmt {
+            value: if self.match_t(&[TokenType::Semicolon]) {
+                None
+            } else {
+                Some(Rc::new(self.expression()))
+            },
         }
     }
 
@@ -266,7 +282,6 @@ impl Parser {
         let mut expr = self.primary();
         if self.match_t(&[TokenType::LeftBrace]) {
             let arguments = self.arguments();
-            self.consume(&TokenType::RightBrace, "expected ')' after arguments");
             expr = wrap_expr(Call {
                 callee: expr,
                 arguments,
@@ -307,10 +322,12 @@ impl Parser {
             TokenType::String("".to_string()),
             TokenType::Number(0.0),
             TokenType::Identifier,
+            TokenType::Return,
         ]) {
             let expr = self.previous();
             wrap_expr(Literal { value: expr })
         } else {
+            println!("voila:{:?}", self.peek());
             self.error("literal expected");
         }
     }

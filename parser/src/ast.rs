@@ -29,6 +29,7 @@ pub enum StmtType {
     If,
     While,
     Break,
+    Return,
 }
 pub trait StmtT: DeclT {
     fn stmt_type(&self) -> StmtType;
@@ -217,6 +218,16 @@ pub struct BreakStmt;
 impl StmtT for BreakStmt {
     fn stmt_type(&self) -> StmtType {
         StmtType::Break
+    }
+}
+
+pub struct ReturnStmt {
+    pub value: Option<ExprRef>,
+}
+
+impl StmtT for ReturnStmt {
+    fn stmt_type(&self) -> StmtType {
+        StmtType::Return
     }
 }
 

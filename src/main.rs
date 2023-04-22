@@ -10,7 +10,7 @@ use std::{
     rc::Rc,
 };
 
-use parser::ast::DeclRef;
+use parser::{ast::DeclRef, printer::AstPrinter, utils::Visitor};
 
 use scanner::tokens::TokenRef;
 
@@ -83,13 +83,13 @@ fn execute<T: Read + Seek, I: Write>(
             return Err(lexeme.unwrap_err());
         }
         tokens.push(Rc::new(lexeme.ok().unwrap()));
-        //println!("{:?}", tokens.last().unwrap());
+        println!("{:?}", tokens.last().unwrap());
     }
     if let Some(decls) = parse_tokens(tokens) {
         // // print parser output
-        // for decl in decls.iter() {
-        //     AstPrinter {}.visit_declaration(decl.clone());
-        // }
+        for decl in decls.iter() {
+            AstPrinter {}.visit_declaration(decl.clone());
+        }
 
         let result = interpreter.interpret(decls);
         match result {

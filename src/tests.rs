@@ -62,11 +62,11 @@ fn test_break() {
     compare_interpreter_runs("data/7/input_err.rl", "data/7/expected_err.txt", params);
 }
 
-// #[test]
-// fn functions() {
-//     let params = &RunParams { should_fail: false };
-//     compare_interpreter_runs("data/7/input.rl", "data/7/expected.txt", params);
-// }
+#[test]
+fn functions() {
+    let params = &RunParams { should_fail: false };
+    compare_interpreter_runs("data/8/input.rl", "data/8/expected.txt", params);
+}
 
 // #[test]
 // fn recursion() {

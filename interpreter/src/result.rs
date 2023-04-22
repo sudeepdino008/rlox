@@ -12,6 +12,7 @@ pub enum IResult {
     None,
     Break,
     Callable(Shared<LoxCallable>),
+    Return(Rc<IResult>),
 }
 
 impl Clone for IResult {
@@ -23,6 +24,7 @@ impl Clone for IResult {
             Self::None => Self::None,
             Self::Break => Self::Break,
             Self::Callable(arg0) => Self::Callable(arg0.clone()),
+            Self::Return(arg0) => Self::Return(arg0.clone()),
         }
     }
 }
@@ -36,6 +38,7 @@ impl Display for IResult {
             Self::None => write!(f, ""),
             Self::Break => write!(f, "break"),
             Self::Callable(c) => write!(f, "{}", c),
+            Self::Return(r) => write!(f, "<return>{}", r),
         }
     }
 }
