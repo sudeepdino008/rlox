@@ -86,7 +86,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
                 }
 
                 _ => {
-                    panic!("unexpected result from block statement");
+                    continue;
                 }
             }
         }

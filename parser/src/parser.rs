@@ -204,7 +204,9 @@ impl Parser {
             value: if self.match_t(&[TokenType::Semicolon]) {
                 None
             } else {
-                Some(Rc::new(self.expression()))
+                let return_val = self.expression();
+                self.consume(&TokenType::Semicolon, "semicolon expected");
+                Some(Rc::new(return_val))
             },
         }
     }
@@ -303,6 +305,8 @@ impl Parser {
                     self.error("too many arguments");
                 }
             }
+
+            self.consume(&TokenType::RightBrace, "right brace missing");
         }
 
         args
