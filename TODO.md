@@ -1,3 +1,5 @@
-👍 fix Expression references to be like StmtRef or DeclRef etc.
+✅ fix Expression references to be like StmtRef or DeclRef etc.
 
-👍 add tests
+✅ add tests
+
+❎ lambda functions
