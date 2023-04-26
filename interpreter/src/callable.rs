@@ -5,6 +5,7 @@ use crate::{environment::EnvironmentRef, result::IResult};
 
 pub struct LoxCallable {
     pub arity: usize,
+    //pub declaring_env: EnvironmentRef,
     pub call: Box<dyn FnMut(&mut dyn VisitorEnvironmentAware, Vec<IResult>) -> IResult>,
 }
 

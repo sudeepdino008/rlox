@@ -66,6 +66,11 @@ fn test_break() {
 fn functions() {
     let params = &RunParams { should_fail: false };
     compare_interpreter_runs("data/8/input.rl", "data/8/expected.txt", params);
+    compare_interpreter_runs(
+        "data/8/input_local_fn.rl",
+        "data/8/expected_local_fn.txt",
+        params,
+    );
 }
 
 // #[test]

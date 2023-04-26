@@ -367,13 +367,15 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
         // variables and function names share the same namespace
         let identifier = decl.identifier.lexeme.as_str();
         let decl = decl.clone();
+        let declaring_env = self.environment.clone();
         let callable = LoxCallable {
             arity: decl.params.len(),
             call: Box::new(move |visitor, params: Vec<IResult>| {
                 // bind the variables
                 // call the function body
                 // return the result
-                let parent = visitor.get_environment();
+                let original_env = visitor.get_environment();
+                let parent = declaring_env.clone();
                 visitor.set_environment(Environment::new_with_parent(parent.clone()));
 
                 let mut viter = params.iter();
@@ -384,7 +386,7 @@ impl<T: Write> Visitor<IResult> for Interpreter<T> {
                 }
 
                 let result = visitor.visit_block_stmt(&decl.body);
-                visitor.set_environment(parent);
+                visitor.set_environment(original_env);
                 result
             }),
         };
