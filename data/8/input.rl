@@ -10,7 +10,6 @@ fun printhello() {
     print "hello world";
 }
 
-
 print add(2,3);
 printhello();
 print add2(4, 5);
