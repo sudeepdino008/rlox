@@ -3,3 +3,5 @@
 ✅ add tests
 
 ❎ lambda functions
+
+❎ update README file with instructions for test, REPL and running a file
